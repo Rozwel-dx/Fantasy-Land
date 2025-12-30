@@ -42,7 +42,7 @@ class DeviceInfo:
     @staticmethod
     def get_npu_map_info() -> Dict[str, Dict[str, str]]:
         npu_map_info = {}
-        npu_info, _ = execute_command(["npu-info", "info", "-m"])
+        npu_info, _ = execute_command(["npu-smi", "info", "-m"])
         npu_map = npu_info.strip().split("\n")[1:]
         for line in npu_map:
             npu_id, chip_id, chip_logic_id = line.strip().split()[:3]
@@ -54,7 +54,7 @@ class DeviceInfo:
         return npu_map_info
 
     def get_running_npus(self) -> List[int]:
-        npu_message, _ = execute_command(["npu-message", "info"])
+        npu_message, _ = execute_command(["npu-smi", "info"])
         in_proc_section = False
         running_npu_set = set()
         for line in npu_message.splitlines():
@@ -148,7 +148,7 @@ class CpuAlloc:
             cpu_num_per_npu = len(cpu_list) // len(npu_list)
             for i, npu in enumerate(npu_list):
                 start_index = i * cpu_num_per_npu
-                end_index = (i + 1) * cpu_num_per_npu if i < len(npu_list) - 1 else len(npu_list)
+                end_index = (i + 1) * cpu_num_per_npu if i < len(npu_list) - 1 else len(cpu_list)
                 result[npu] = cpu_list[start_index:end_index]
         return result
 
@@ -237,14 +237,14 @@ class CpuAlloc:
         for npu, pool in self.npu_cpu_pool.items():
             if len(pool) >= 3:
                 main = pool[:-2]
-                acl = pool[-2]
+                acl = [pool[-2]]
                 rel = pool[-1]
             else:
                 raise RuntimeError("The number of CPUs is insufficient to bind to the NPUs. "
                                    "Each NPU requires at least 3 CPUs.")
             self.assign_main[npu] = main
-            self.assign_acl[acl] = main
-            self.assign_rel[rel] = acl
+            self.assign_acl[npu] = acl
+            self.assign_rel[npu] = rel
 
     def print_plan(self) -> None:
         logger.info("The CPU allocation plan is as follows:")
@@ -261,7 +261,7 @@ class CpuAlloc:
             acl = self.find_thread(pid, "acl_thread")
             if acl:
                 self.bind(acl, self.assign_acl[npu], False)
-            rel = self.find_thread(pid, "relation_thread")
+            rel = self.find_thread(pid, "release_thread")
             if rel and self.assign_rel[npu]:
                 self.bind(rel, [self.assign_rel[npu]], False)
 
@@ -272,6 +272,6 @@ class CpuAlloc:
         self.bind_threads()
 
 
-def bind_cpus(self) -> None:
+def bind_cpus() -> None:
     binder = CpuAlloc()
     binder.run_all()
