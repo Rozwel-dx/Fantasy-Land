@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import os
+import psutil
 import subprocess
 from collections import defaultdict
-from typing import List, Tuple, Dict, Optional
+from typing import Dict, List, Optional, Tuple
+
 from vllm.logger import logger
 
 ALLOWED_CPUS_PATH = "/proc/self/status"
@@ -15,8 +17,7 @@ def execute_command(cmd: List[str]) -> Tuple[str, int]:
     with subprocess.Popen(cmd,
                           shell=False,
                           stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE
-                          ) as p:
+                          stderr=subprocess.PIPE) as p:
         out, _ = p.communicate(timeout=1000)
     return out.decode(), p.returncode
 
@@ -115,7 +116,8 @@ class DeviceInfo:
 
 
 class CpuAlloc:
-    def __init__(self):
+    def __init__(self, rank_id: int):
+        self.rank_id = rank_id
         self.device_info: DeviceInfo = DeviceInfo()
         self.cpu_node: Dict[int, int] = {}
         self.numa_to_cpu_map: Dict[int, List[int]] = defaultdict(list)
@@ -125,36 +127,36 @@ class CpuAlloc:
         self.assign_rel: Dict[int, Optional[int]] = {}
 
     @staticmethod
-    def get_acl_main_threads(thread_message: str) -> List[int]:
-        pids: List[int] = []
-        acl_threads_set = set()
+    def get_threads_map(thread_message: str) -> Dict[str, Dict[str, List[str]]]:
+        threads_map: Dict[str, Dict[str, List[str]]] = {}
         for line in thread_message.splitlines():
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+            main_pid, sub_pid = parts[0], parts[1]
             if "acl_thread" in line:
-                pid = line.split()[0]
-                if pid not in acl_threads_set:
-                    acl_threads_set.add(pid)
-                    pids.append(int(pid))
-        return sorted(pids)
+                key = "acl_thread"
+            elif "release_thread" in line:
+                key = "release_thread"
+            else:
+                continue
+            if main_pid not in threads_map:
+                threads_map[main_pid] = {"acl_thread": [], "release_thread": []}
+            threads_map[main_pid][key].append(sub_pid)
+        return threads_map
 
     @staticmethod
-    def find_thread(thread_message: str, pid: int, name: str) -> int:
-        for line in thread_message.splitlines():
-            if name in line and str(pid) in line:
-                return int(line.split()[1])
-        return 0
-
-    @staticmethod
-    def bind(pid: int, cpus: List[int], bind_sub_thread: bool) -> None:
+    def bind(pid: str, cpus: List[int], bind_sub_thread: bool) -> None:
         if cpus:
             cpu_list = ",".join(map(str, cpus))
             if bind_sub_thread:
                 bind_result, return_code = execute_command(
                     ["taskset", "-acp", cpu_list,
-                     str(pid)])
+                     pid])
             else:
                 bind_result, return_code = execute_command(
                     ["taskset", "-cp", cpu_list,
-                     str(pid)])
+                     pid])
             if return_code != 0:
                 raise RuntimeError(f"Failed to bind {pid} to CPU {cpu_list}.")
 
@@ -191,9 +193,9 @@ class CpuAlloc:
             line = line.strip()
             if not line or not line[0].isdigit():
                 continue
-            cpu, node = line.split(",")
-            cpu = int(cpu)
-            node = int(node)
+            cpu_str, node_str = line.split()
+            cpu = int(cpu_str)
+            node = int(node_str)
             self.cpu_node[cpu] = node
             self.numa_to_cpu_map[node].append(cpu)
         if len(self.numa_to_cpu_map) == 0:
@@ -248,6 +250,8 @@ class CpuAlloc:
                 cpu for cpu in self.device_info.npu_affinity.get(npu, [])
                 if cpu in self.device_info.allowed_cpus
             ]
+            if not base_cpu_list:
+                raise RuntimeError("CPUs available in 'Cpus_allowed_list' conflict with NUMA affinity.")
             extra_cpu_list = self.extend_numa(base_cpu_list)
             self.npu_cpu_pool[npu] = extra_cpu_list
         groups = defaultdict(list)
@@ -277,24 +281,23 @@ class CpuAlloc:
 
     def print_plan(self) -> None:
         logger.info("The CPU allocation plan is as follows:")
-        for npu in sorted(self.device_info.running_npu_list):
-            main = " ".join(map(str, self.assign_main[npu]))
-            acl = " ".join(map(str, self.assign_acl[npu]))
-            rel = str(self.assign_rel[npu]) if self.assign_rel[npu] else ""
-            logger.info(
-                f"NPU{npu}: main=[{main}]  acl=[{acl}]  release=[{rel}]")
+        current_npu = self.device_info.running_npu_list[self.rank_id]
+        main = " ".join(map(str, self.assign_main[current_npu]))
+        acl = " ".join(map(str, self.assign_acl[current_npu]))
+        rel = str(self.assign_rel[current_npu]) if self.assign_rel[current_npu] else ""
+        logger.info(
+            f"NPU{current_npu}: main=[{main}]  acl=[{acl}]  release=[{rel}]")
 
     def bind_threads(self) -> None:
         thread_message, _ = execute_command(["ps", "-Te"])
-        threads = self.get_acl_main_threads(thread_message)
-        for npu, pid in zip(self.device_info.running_npu_list, threads):
-            self.bind(pid, self.assign_main[npu], True)
-            acl = self.find_thread(thread_message, pid, "acl_thread")
-            if acl:
-                self.bind(acl, self.assign_acl[npu], False)
-            rel = self.find_thread(thread_message, pid, "release_thread")
-            if rel and self.assign_rel[npu]:
-                self.bind(rel, [self.assign_rel[npu]], False)
+        threads_map = self.get_threads_map(thread_message)
+        main_pid = psutil.Process().pid
+        current_npu = self.device_info.running_npu_list[self.rank_id]
+        self.bind(main_pid, self.assign_main[current_npu], True)
+        for acl_thread in threads_map.get(main_pid, {}).get("acl_thread", []):
+            self.bind(acl_thread, self.assign_acl[current_npu], False)
+        for release_thread in threads_map.get(main_pid, {}).get("release_thread", []):
+            self.bind(release_thread, self.assign_rel[current_npu], False)
 
     def run_all(self) -> None:
         self.build_cpu_pools()
@@ -303,6 +306,6 @@ class CpuAlloc:
         self.bind_threads()
 
 
-def bind_cpus() -> None:
-    binder = CpuAlloc()
+def bind_cpus(rank_id: int) -> None:
+    binder = CpuAlloc(rank_id)
     binder.run_all()
