@@ -316,49 +316,49 @@ class CpuAlloc:
                     execute_command(["systemctl", "stop", "irqbalance"])
                 else:
                     return
-            sq_irqs = []
-            with open("/proc/interrupts") as f:
-                for line in f:
-                    if "sq_send_trigger_irq" in line:
-                        irq = line.split(":")[0].strip()
-                        sq_irqs.append(irq)
-            for npu in sorted(self.npu_cpu_pool.keys()):
-                cpus = self.npu_cpu_pool[npu]
-                if len(cpus) < 2:
-                    continue
-                sq_cpu, cq_cpu = cpus[0], cpus[1]
-                info, _ = execute_command(["npu-smi", "info", "-t", "board", "-i", str(npu)])
-                pci_addr = ""
-                for line in info.splitlines():
-                    if "PCIe Bus Info" in line:
-                        pci_addr = line.split()[-1].lower()
-                        break
-                if not pci_addr:
-                    logger.warning(f"Can't find pci address of NPU{npu} .")
-                    continue
-                try:
-                    npu_irq_list = sorted(
-                        os.listdir(f"/sys/bus/pci/devices/{pci_addr}/msi_irqs/"),
-                        key=lambda x: int(x)
-                    )
-                except FileNotFoundError:
-                    logger.warning(f"The msi_irqs folder cannot be found under /sys/bus/pci/devices/{pci_addr} .")
-                    continue
-                sq_irq, cq_irq = "", ""
-                for irq in sq_irqs:
-                    if irq in npu_irq_list:
-                        sq_irq = irq
-                        cq_irq = str(int(irq) + 1)
-                        break
-                if not sq_irq:
-                    logger.warning(f"The sq_send_trigger_irq of NPU{npu} if not found.")
-                    continue
-                logger.info(f"NPU{npu}(PCI {pci_addr}): sq_send_trigger_irq IRQ_ID={sq_irq} -> CPU{sq_cpu}, "
-                            f"cq_update_irq IRQ_ID={cq_irq} -> CPU{cq_cpu}")
-                with open(f"/proc/irq/{sq_irq}/smp_affinity", "w") as f:
-                    f.write(self.cpu_to_mask(sq_cpu))
-                with open(f"/proc/irq/{cq_irq}/affinity", "w") as f:
-                    f.write(self.cpu_to_mask(cq_cpu))
+        sq_irqs = []
+        with open("/proc/interrupts") as f:
+            for line in f:
+                if "sq_send_trigger_irq" in line:
+                    irq = line.split(":")[0].strip()
+                    sq_irqs.append(irq)
+        for npu in sorted(self.npu_cpu_pool.keys()):
+            cpus = self.npu_cpu_pool[npu]
+            if len(cpus) < 2:
+                continue
+            sq_cpu, cq_cpu = cpus[0], cpus[1]
+            info, _ = execute_command(["npu-smi", "info", "-t", "board", "-i", str(npu)])
+            pci_addr = ""
+            for line in info.splitlines():
+                if "PCIe Bus Info" in line:
+                    pci_addr = line.split()[-1].lower()
+                    break
+            if not pci_addr:
+                logger.warning(f"Can't find pci address of NPU{npu} .")
+                continue
+            try:
+                npu_irq_list = sorted(
+                    os.listdir(f"/sys/bus/pci/devices/{pci_addr}/msi_irqs/"),
+                    key=lambda x: int(x)
+                )
+            except FileNotFoundError:
+                logger.warning(f"The msi_irqs folder cannot be found under /sys/bus/pci/devices/{pci_addr} .")
+                continue
+            sq_irq, cq_irq = "", ""
+            for irq in sq_irqs:
+                if irq in npu_irq_list:
+                    sq_irq = irq
+                    cq_irq = str(int(irq) + 1)
+                    break
+            if not sq_irq:
+                logger.warning(f"The sq_send_trigger_irq of NPU{npu} is not found.")
+                continue
+            logger.info(f"NPU{npu}(PCI {pci_addr}): sq_send_trigger_irq IRQ_ID={sq_irq} -> CPU{sq_cpu}, "
+                        f"cq_update_irq IRQ_ID={cq_irq} -> CPU{cq_cpu}")
+            with open(f"/proc/irq/{sq_irq}/smp_affinity", "w") as f:
+                f.write(self.cpu_to_mask(sq_cpu))
+            with open(f"/proc/irq/{cq_irq}/smp_affinity", "w") as f:
+                f.write(self.cpu_to_mask(cq_cpu))
 
     def run_all(self) -> None:
         self.build_cpu_pools()
