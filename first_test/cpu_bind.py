@@ -8,7 +8,7 @@ from collections import defaultdict
 import psutil
 from vllm.logger import logger
 
-MASK_BIT = 32
+MASK_BIT = 32  # Number of bits in a CPU affinity mask group
 ALLOWED_CPUS_PATH = "/proc/self/status"
 ASCEND_RT_VISIBLE_DEVICES = os.getenv("ASCEND_RT_VISIBLE_DEVICES")
 
@@ -123,7 +123,7 @@ class CpuAlloc:
         value = 1 << bit
         mask = f"{value:08x}"
         for _ in range(1, group + 1):
-            mask = f"{mask},00000000"
+            mask = f"{mask},{'0' * (MASK_BIT // 4)}"
         return mask
 
     @staticmethod
@@ -256,7 +256,7 @@ class CpuAlloc:
     def allocate(self) -> None:
         for npu, pool in self.npu_cpu_pool.items():
             if len(pool) >= 3:
-                main = pool[2:-2]
+                main = pool[2:-2]  # Reserve first two CPUs for IRQ binding
                 acl = [pool[-2]]
                 rel = [pool[-1]]
             else:
@@ -282,14 +282,9 @@ class CpuAlloc:
         all_numa_nodes = sorted(self.numa_to_cpu_map.keys())
         target_cpu = self.assign_acl[npu][0]
         target_numa = self.cpu_node[target_cpu]
-        bind_numa_list = [target_numa, target_numa + 1 if target_numa % 2 == 0 else target_numa + 1]
+        bind_numa_list = [target_numa, target_numa + 1 if target_numa % 2 == 0 else target_numa - 1]
         logger.info(f"[migrate] rank:{self.rank_id} -> NUMA {bind_numa_list}")
-        execute_command([
-            "migratepages",
-            pid,
-            ",".join(map(str, all_numa_nodes)),
-            ",".join(map(str, bind_numa_list))
-        ])
+        execute_command(["migratepages", pid, ",".join(map(str, all_numa_nodes)), ",".join(map(str, bind_numa_list))])
 
     def bind_threads(self) -> None:
         thread_message, _ = execute_command(["ps", "-Te"])
@@ -311,11 +306,11 @@ class CpuAlloc:
             if "irqbalance.service" in output:
                 _, return_code = execute_command(["systemctl", "is-active", "--quiet", "irqbalance"])
                 if return_code == 0:
-                    logger.warning("The irqbalance service is running and has been stopped. "
-                                   "You can run the systemctl start irqbalance command to restart it.")
+                    logger.warning(
+                        "The irqbalance service is running and has been stopped. "
+                        "You can run the systemctl start irqbalance command to restart it."
+                    )
                     execute_command(["systemctl", "stop", "irqbalance"])
-                else:
-                    return
         sq_irqs = []
         with open("/proc/interrupts") as f:
             for line in f:
@@ -326,7 +321,7 @@ class CpuAlloc:
             cpus = self.npu_cpu_pool[npu]
             if len(cpus) < 2:
                 continue
-            sq_cpu, cq_cpu = cpus[0], cpus[1]
+            sq_cpu, cq_cpu = cpus[0], cpus[1]  # Reserved for IRQ binding
             info, _ = execute_command(["npu-smi", "info", "-t", "board", "-i", str(npu)])
             pci_addr = ""
             for line in info.splitlines():
@@ -337,10 +332,7 @@ class CpuAlloc:
                 logger.warning(f"Can't find pci address of NPU{npu} .")
                 continue
             try:
-                npu_irq_list = sorted(
-                    os.listdir(f"/sys/bus/pci/devices/{pci_addr}/msi_irqs/"),
-                    key=lambda x: int(x)
-                )
+                npu_irq_list = sorted(os.listdir(f"/sys/bus/pci/devices/{pci_addr}/msi_irqs/"), key=lambda x: int(x))
             except FileNotFoundError:
                 logger.warning(f"The msi_irqs folder cannot be found under /sys/bus/pci/devices/{pci_addr} .")
                 continue
@@ -353,8 +345,10 @@ class CpuAlloc:
             if not sq_irq:
                 logger.warning(f"The sq_send_trigger_irq of NPU{npu} is not found.")
                 continue
-            logger.info(f"NPU{npu}(PCI {pci_addr}): sq_send_trigger_irq IRQ_ID={sq_irq} -> CPU{sq_cpu}, "
-                        f"cq_update_irq IRQ_ID={cq_irq} -> CPU{cq_cpu}")
+            logger.info(
+                f"NPU{npu}(PCI {pci_addr}): sq_send_trigger_irq IRQ_ID={sq_irq} -> CPU{sq_cpu}, "
+                f"cq_update_irq IRQ_ID={cq_irq} -> CPU{cq_cpu}"
+            )
             with open(f"/proc/irq/{sq_irq}/smp_affinity", "w") as f:
                 f.write(self.cpu_to_mask(sq_cpu))
             with open(f"/proc/irq/{cq_irq}/smp_affinity", "w") as f:
