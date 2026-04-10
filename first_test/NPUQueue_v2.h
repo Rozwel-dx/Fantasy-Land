@@ -4,6 +4,7 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <sys/time.h>
 
 #include <c10/core/Device.h>
 #include "torch_npu/csrc/core/npu/npu_log.h"
