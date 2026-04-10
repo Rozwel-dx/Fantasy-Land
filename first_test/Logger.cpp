@@ -498,11 +498,11 @@ bool Repository::ReadQueue()
     uint32_t queue_size_after = write_idx.idx >= read_idx.idx ? write_idx.idx - read_idx.idx : write_idx.idx + N - read_idx.idx;
     
     // Log queue size after dequeue
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    double current_time = tv.tv_sec + tv.tv_usec / 1000000.0;
+    struct timeval tv_after;
+    gettimeofday(&tv_after, NULL);
+    double current_time_after = tv_after.tv_sec + tv_after.tv_usec / 1000000.0;
     logger->info("TaskQueue: Operator dequeued, current size = %u, time = %lf, device = %d", 
-        queue_size_after, current_time, device_idx);
+        queue_size_after, current_time_after, device_idx);
 
     if (GetStatus() == RepoStatus::STOP_EXIT) {
         // The "stop_device" function will first set the "FORCE STOP" state, and then call the "devicetaskabort" interface.
