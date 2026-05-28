@@ -139,7 +139,8 @@ effSeq:   1     2     3     4     5     6     7
           │     │     │     │     │     │     │     │
           ▼     ▼     ▼     ▼     ▼     ▼     ▼     ▼
 能看到:  [0]  [0,1] [0,2] [0,3] [0,4] [0,5] [0,6] [0,7]
-``` （2）Unrolling处理模板（84-120行）
+```
+（2）Unrolling处理模板（84-120行）
 ```
 auto unrollingProcess = [&](int unrollLength, auto &&firstBlockIdx) {
     // 1. 获取当前Query切片
