@@ -1,327 +1,263 @@
-# DeepSeek V4 Indexer 模块深度解析
-## 一、核心思想
-### 1.1 设计背景
-DeepSeek V4 作为新一代 MoE（Mixture of Experts）大模型，在处理超长序列时面临着巨大的计算挑战。传统的 Full Attention 机制复杂度为 [ o bj ec tO bj ec t ] O ( n 2 ) ，当序列长度达到 64K 甚至 128K 时，计算量和内存占用都会呈平方级增长。
+# LightningIndexerTopk.cpp 深度解析
+## 一、文件整体功能定位
+lightning_indexer_topk.cpp 是 DeepSeek V4 稀疏注意力机制 的核心算子实现，主要完成以下任务：
 
-Indexer 模块的核心目标 ：通过 稀疏注意力机制 ，从海量 Key 序列中快速筛选出与 Query 最相关的 Top-K 个位置，将注意力计算复杂度从 [ o bj ec tO bj ec t ] O ( n 2 ) 降低到 [ o bj ec tO bj ec t ] O ( n ⋅ K ) ，其中 [ o bj ec tO bj ec t ] K 为选中的稀疏度（DeepSeek V4 中固定为 2048）。
+阶段 功能 代码位置 阶段1：注意力分数计算 计算每个位置与有效Key的注意力分数 30-131行 阶段2：TopK选择 从分数中选择Top-2048个索引 133-314行
 
-### 1.2 关键设计理念
-设计原则 实现方式 技术价值 块级稀疏 基于 Block Table 管理有效 Key 块 跳过 padding 区域，减少无效计算 两阶段计算 Prolog（预处理）+ Indexer（选择） 算子融合，提升计算效率 分级 TopK 2K/8K/128K 自适应算法路径 针对不同序列长度优化 量化加速 INT8 量化 Query 投影 减少内存带宽占用
+核心设计思想 ：通过 块级稀疏处理 和 自适应算法选择 ，在长序列场景下实现高效的稀疏注意力计算。
 
-## 二、完整流程
-### 2.1 整体架构
+## 二、前131行详细解析
+### 2.1 头文件和命名空间（1-22行）
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                      DeepSeek V4 Indexer 完整流程                        │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌─────────────────────┐     ┌─────────────────────┐                    │
-│  │  Stage 1: Prolog     │────▶│  Stage 2: Indexer    │                    │
-│  │  (Query 预处理)      │     │  (TopK 索引选择)     │                    │
-│  └─────────────────────┘     └─────────────────────┘                    │
-│           │                            │                                │
-│           ▼                            ▼                                │
-│  ┌─────────────────────┐     ┌─────────────────────┐                    │
-│  │ 1. LoRA 投影        │     │ 1. 块级 Matmul      │                    │
-│  │ 2. RoPE 编码        │     │ 2. ReLU + Weight    │                    │
-│  │ 3. Hadamard 变换    │     │ 3. 行求和聚合        │                    │
-│  │ 4. 量化输出         │     │ 4. 分级 TopK 选择   │                    │
-│  └─────────────────────┘     └─────────────────────┘                    │
-│           │                            │                                │
-│           ▼                            ▼                                │
-│  ┌─────────────────────┐     ┌─────────────────────┐                    │
-│  │ 输出: q, weights,   │     │ 输出: selectedIndices│                    │
-│  │       q_scale       │     │  (B, S1, N2, 2048)  │                    │
-│  └─────────────────────┘     └─────────────────────┘                    │
-│                                                                         │
-│  ┌──────────────────────────────────────────────────────────────────┐   │
-│  │  Stage 3: IndexerAttention (稀疏注意力计算，使用 selectedIndices)   │   │
-│  └──────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+#include <cfloat>
+#include "tilefwk/tensor.h"
+#include "tilefwk/tilefwk.h"
+#include "lightning_indexer_topk.h"
+#include "parallel_sort.h"
+
+using namespace npu::tile_fwk;
 ```
-### 2.2 Stage 1: Prolog 预处理
-Prolog 阶段完成 Query 向量的预处理，为后续 Indexer 计算提供输入。
+关键点 ：
 
-计算公式 ：
+- tilefwk ：NPU Tile 框架，提供张量操作和 Tile 配置功能
+- parallel_sort.h ：并行排序算法头文件
+- npu::tile_fwk ：NPU Tile 框架命名空间
+### 2.2 函数入口（23-28行）
+```
+void LightningIndexerTopk(const Tensor &query, const Tensor &key, const Tensor &
+weights, 
+    const Tensor &actSeqKey, const Tensor &blockTable, Tensor &topkRes, 
+    const int selectedCount, IndexerTile tileConfig, std::set<int> unrollList) {
+    LightningIndexerTopkImpl(query, key, weights, actSeqKey, blockTable, 
+                            topkRes, selectedCount, tileConfig, unrollList);
+}
+```
+设计模式 ：采用 包装函数 模式，将实际实现委托给 LightningIndexerTopkImpl 。
+
+### 2.3 主函数签名和参数说明（30-41行）
+```
+void LightningIndexerTopkImpl(
+    const Tensor &query,           // [B, S1, indexN1, indexD] - 查询向量
+    const Tensor &key,             // [blockNum, blockSize, n2, indexD] - 键向量（分
+    块存储）
+    const Tensor &weights,         // [B, S1, indexN1] - 权重向量
+    const Tensor &actSeqKey,       // [B] - 实际序列长度
+    const Tensor &blockTable,      // [B, maxBlockNum] - 块映射表（支持稀疏访问）
+    Tensor &topkRes,               // [B, s1, N2, selectedCount] - 输出TopK索引
+    const int selectedCount,       // 固定为2048
+    IndexerTile tileConfig,        // Tile配置（影响并行效率）
+    std::set<int> unrollList,      // 循环展开配置
+    Tensor *tmpOut,                // 可选：临时输出
+    Tensor *topkValue              // 可选：TopK值（非索引）
+)
+```
+核心参数解读 ：
+
+参数 维度 说明 query [B, S1, 64, 128] 通常 indexN1=64（索引头数），indexD=128（头维度） key [blockNum, 128, 1, 128] blockSize固定为128 blockTable [B, maxBlockNum] 关键 ：支持变长序列的稀疏块访问
+
+### 2.4 符号化处理（43-58行）
+```
+// Symbolization
+SymbolicScalar b = GetInputShape(query, 0);      // Batch大小（动态）
+SymbolicScalar s1 = GetInputShape(query, 1);     // 序列长度（动态）
+SymbolicScalar blockNum = GetInputShape(key, 0); // 块数量（动态）
+
+auto indexN1 = query.GetShape()[SHAPE_DIM2];  // 索引头数（固定）
+auto indexD = query.GetShape()[SHAPE_DIM3];   // 头维度（固定）
+auto blockSize = key.GetShape()[1];           // 块大小（固定为128）
+auto n2 = key.GetShape()[SHAPE_DIM2];         // 输出头数（固定为1）
+auto group = indexN1 / n2;                    // 分组数 = 64 / 1 = 64
+
+// 常量定义
+constexpr int64_t maxBatch = 128;
+constexpr int64_t maxS1 = 4;
+constexpr int64_t maxN2 = 1;
+constexpr int64_t maxS2 = 128 * 1024;  // 最大支持128K序列
+```
+设计要点 ：
+
+- 动态维度 ： b 、 s1 、 blockNum 用 SymbolicScalar 表示，支持变长输入
+- 固定维度 ： indexN1 、 indexD 、 blockSize 是编译期固定值
+- maxS2=128K ：预分配最大128K空间，避免动态内存分配
+### 2.5 张量初始化（60-70行）
+```
+Tensor query2D(dtype, {b * s1 * indexN1, indexD}, "query2D");  // [B×S1×64, 128]
+Tensor key2D(dtype, {blockNum * blockSize, n2 * indexD}, "key2D");  // 
+[blockNum×128, 128]
+Tensor weight2D(dtype, {b * s1 * indexN1, 1}, "weight2D");  // [B×S1×64, 1]
+Tensor localSum(DT_FP32, {maxBatch * maxS1 * maxN2, maxS2}, "localSum");  // [512, 
+131072]
+
+// 4D → 2D 重排
+LOOP("INPUT_4D_2_2D", FunctionType::DYNAMIC_LOOP, unUsedIdx, LoopRange(1)) {
+    ReshapeInplace(query, query2D);
+    ReshapeInplace(key, key2D);
+    ReshapeInplace(weights, weight2D);
+}
+```
+核心设计 ：
+
+- 4D→2D转换 ：将高维张量展平，便于后续块级处理
+- localSum预分配 ：这是 最关键的设计
+  - 大小：[128×4×1, 131072] = [512, 131072]
+  - 用途：存储所有位置的注意力分数
+  - 优势：一次性分配，避免运行时动态分配
+### 2.6 三重循环结构（72-131行）
+这是前131行的 核心部分 ，实现了块级注意力分数计算：
 
 ```
-q_tmp = qr @ idx_wq_b · qr_scale · idx_wq_b_scale
-
-q_hadamard = Cat({q_tmp[:, :nope_dim], Rope(q_tmp[:, nope_dim:])}, -1) @ hadamard
-
-q, q_scale = Quant(q_hadamard)
-
-weights = x @ weights_proj · (1/√(idx_nq · head_dim))
+LOOP("INDEX_LOOP_BATCH", ..., bIdx, LoopRange(b)) {        // 批处理循环
+    LOOP("INDEX_LOOP_S1", ..., s1Idx, LoopRange(s1)) {    // 序列位置循环
+        LOOP("INDEX_LOOP_N2", ..., n2Idx, LoopRange(n2)) {  // 输出头循环
+            // 核心计算逻辑
+        }
+    }
+}
+``` （1）因果约束和有效序列长度（75-79行）
 ```
-输入输出说明 （来自 Indexer_Prolog.md ）：
+auto casualOffset = s1 - s1Idx - 1;  // 因果偏移
+auto effSeq = curSeq - casualOffset; // 有效序列长度
+auto actBlock = (effSeq + blockSize - 1) / blockSize;  // 有效块数
+```
+数学推导 ：
 
-输入 类型 Shape 说明 qr INT8 [t, q_lora_rank] LoRA 投影输入 idx_wq_b INT8 [q_lora_rank, idx_nq*head_dim] 量化权重 x BF16 [t, h] Transformer 层输出 cos/sin BF16 [t, rope_dim] RoPE 编码系数 hadamard BF16 [head_dim, head_dim] Hadamard 变换矩阵
+```
+对于Prefill阶段（curSeq == s1）：
+effSeq = s1 - (s1 - s1Idx - 1) = s1Idx + 1
 
-输出 类型 Shape 说明 q INT8 [t, idx_nq*head_dim] 量化后的 Query weights FP16 [t, idx_nq] 注意力权重 q_scale FP16 [t, idx_nq] 反量化 scale
+这意味着：
+- 位置0：effSeq=1（只能看到自己）
+- 位置1：effSeq=2（能看到位置0和1）
+- ...
+- 位置s1-1：effSeq=s1（能看到全部）
+```
+因果约束的可视化 ：
 
-### 2.3 Stage 2: Indexer 核心计算
-Indexer 阶段是稀疏注意力的核心，实现从海量 Key 中选择 Top-K 相关位置。
+```
+位置:     0     1     2     3     4     5     6     7
+effSeq:   1     2     3     4     5     6     7     8
+          │     │     │     │     │     │     │     │
+          ▼     ▼     ▼     ▼     ▼     ▼     ▼     ▼
+能看到:  [0]  [0,1] [0,2] [0,3] [0,4] [0,5] [0,6] [0,7]
+``` （2）Unrolling处理模板（84-120行）
+```
+auto unrollingProcess = [&](int unrollLength, auto &&firstBlockIdx) {
+    // 1. 获取当前Query切片
+    auto curQ = View(query2D, {group, indexD}, {qOffset, 0});  // (64, 128)
 
-输入输出 ：
+    std::vector<Tensor> concatSrcs;
+    
+    // 2. 静态展开处理多个块
+    for (int subblockIdx = 0; subblockIdx < unrollLength; subblockIdx++) {
+        auto blockIdx = firstBlockIdx + subblockIdx;
+        
+        // 关键：从blockTable获取实际块位置（支持稀疏）
+        SymbolicScalar curBlockIdx = GetTensorData(blockTable, {bIdx, blockIdx});
+        
+        // 获取当前Key块（处理边界）
+        auto curK = View(key2D, {blockSize, indexD},
+            {std::min(blockSize, effSeq - (blockIdx * blockSize)), indexD},
+            {curBlockIdx * blockSize, n2Idx * indexD});  // (128, 128)
 
-输入 类型 Shape 说明 query BF16 [B, S1, indexN1, indexD] 查询向量 key BF16 [blockNum, blockSize, n2, indexD] 键向量（分块存储） weights BF16 [B, S1, indexN1] 权重向量 actSeqKey INT32 [B] 实际序列长度 blockTable INT32 [B, maxBlockNum] 有效块映射表
+        // 3. Matmul计算（核心）
+        TileShape::Current().SetCubeTile({c1Tile[0], c1Tile[1]}, 
+                                          {c1Tile[2], c1Tile[3]}, 
+                                          {c1Tile[4], c1Tile[5]}, false);
+        auto mmRes = Matrix::Matmul<false, true>(DataType::DT_FP32, curQ, curK);
+        concatSrcs.emplace_back(mmRes);
+    }
 
-输出 类型 Shape 说明 selectedIndices INT32 [B, S1, N2, 2048] 选中的 Top-K 索引
+    // 4. ReLU + Weight融合
+    auto curW = View(weight2D, {group, 1}, {qOffset, 0});  // (64, 1)
+    auto wB32 = Cast(curW, DT_FP32);
+    auto mmRes = Concat(concatSrcs, -1);
+    auto reluRes = MaxS(mmRes, Element(DT_FP32, 0.0f));  // ReLU
+    auto mulRes = Mul(reluRes, wB32);                     // ×权重
 
+    // 5. 行求和并聚合到localSum
+    auto sumRes = RowSumSingle(mulRes, 0);  // (1, superBlockSize)
+    Assemble(sumRes, {bs1n2Offset, firstBlockIdx * blockSize}, localSum);
+};
+```
 核心计算流程 ：
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│                    Indexer 核心计算流程                         │
-├────────────────────────────────────────────────────────────────┤
-│  1. Reshape 4D → 2D                                            │
-│     query [B,S1,N1,D] → query2D [B*S1*N1, D]                   │
-│     key [blockNum,blockSize,n2,D] → key2D [blockNum*blockSize, n2*D] │
-├────────────────────────────────────────────────────────────────┤
-│  2. 三重循环遍历 (Batch × S1 × N2)                              │
-│     ├── 计算有效序列长度: effSeq = curSeq - casualOffset        │
-│     ├── 计算有效块数: actBlock = ceil(effSeq / blockSize)       │
-│     └── 块级注意力计算:                                          │
-│         curQ [group, D] × curK [D, blockSize] → score [group, blockSize] │
-│         score = ReLU(score) × weights                           │
-│         localSum += RowSum(score)                               │
-├────────────────────────────────────────────────────────────────┤
-│  3. 分级 TopK 选择                                              │
-│     ├── effSeq ≤ 2K: 直接 TopKSort                             │
-│     ├── 2K < effSeq ≤ 8K: 直接 TopKSort                        │
-│     └── effSeq > 8K: 两级归并 (128K→32K→8K→2K)                  │
-└────────────────────────────────────────────────────────────────┘
+Query [64,128] × Key^T [128,128] → Score [64,128]
+        ↓
+    ReLU(Score) → [64,128]
+        ↓
+    Score × Weight [64,1] → [64,128]
+        ↓
+    RowSum → [1,128]（聚合到单向量）
+        ↓
+    写入localSum
 ```
-### 2.4 分级 TopK 策略
-针对不同序列长度，Indexer 采用自适应的 TopK 算法：
+关键技术点 ：
 
-序列长度范围 算法策略 设计考量 ≤ 2048 直接排序 数据量小，直接排序效率最高 (2048, 8192] 直接排序 8K 在单个 Tile 内可处理 > 8192 两级归并 避免 O(n log n) 复杂度爆炸
-
->8K 时的两级归并流程 ：
-
+技术 实现 收益 块稀疏访问 blockTable 动态获取块位置 支持变长序列，跳过padding 算子融合 Matmul + ReLU + Weight + RowSum 在单个Tile内完成 减少内存访问，提升效率 边界处理 std::min(blockSize, effSeq - ...) 正确处理不完整块 循环展开 unrollLength 参数化展开 减少循环开销，提升并行度
+ （3）Matmul循环（122-128行）
 ```
-128K 序列 → 每 8K 块独立排序 → 每个块选 top-2048 → 得到 16 × 2048 = 32K 候选
-    ↓
-32K 候选 → 每 8K 块独立排序 → 每个块选 top-2048 → 得到 4 × 2048 = 8K 候选
-    ↓
-8K 候选 → 排序 → 选 top-2048 → 最终结果
-```
-## 三、关键代码段分析
-### 3.1 算子注册与参数配置
-文件位置 ： ops/pypto/src/lightning_indexer_pto/op_kernel/lightning_indexer_impl.cpp
-
-```
-struct LightningIndexerPtoParams {
-    int b = -1;                    // Batch Size
-    int s1 = -1;                   // Query 序列长度
-    int blockNum = -1;             // Key 块数量
-    int maxBlockNum = -1;          // 最大块数
-    int blockSize = 128;           // 块大小（固定）
-    int indexNHeads = 64;          // 索引头数
-    int indexHeadDim = 128;        // 索引头维度
-    int n1 = 64;                   // 输入特征维度
-    int n2 = 1;                    // 输出特征维度
-    DataType dType = DT_BF16;      // 数据类型
-    int selectedCount = 2048;      // 选中数量（固定）
-};
-
-void DynamicLightningIndexerPto(uint64_t configKey) {
-    // 配置优化选项
-    config::SetHostOption(ONLY_CODEGEN, true);
-    config::SetCodeGenOption(SUPPORT_DYNAMIC_UNALIGNED, true);
-    config::SetCodeGenOption(CODEGEN_EXPRESSION_FUSION, true);
-    config::SetRuntimeOption(MACHINE_SCHED_MODE, 
-        static_cast<uint8_t>(MachineScheduleConfig::L2CACHE_AFFINITY_SCH) |
-        static_cast<uint8_t>(MachineScheduleConfig::MULTI_CORE_FAIR_SCH));
-    
-    // 算子注册
-    FUNCTION("LightningIndexer", {query, key, weights, actualSeqLengthsKey, 
-    blockTable}, {selectedIndices}) {
-        LightningIndexerTopk(query, key, weights, actualSeqLengthsKey, 
-                            blockTable, selectedIndices, params.selectedCount, 
-                            indexerConfig);
-    }
-}
-
-REGISTER_OP(LightningIndexerPto)
-    .ImplFunc({{Lightning_Indexer_PTO_ConfigKey, DynamicLightningIndexerPto}});
-```
-关键配置解析 ：
-
-- L2CACHE_AFFINITY_SCH ：启用 L2 缓存亲和性调度，减少缓存抖动
-- MULTI_CORE_FAIR_SCH ：多核公平调度，平衡各核心负载
-- CODEGEN_EXPRESSION_FUSION ：表达式融合，减少中间结果写入
-### 3.2 块级注意力计算核心
-文件位置 ： ops/pypto/src/lightning_indexer_pto/op_kernel/lightning_indexer_topk.cpp
-
-```
-void LightningIndexerTopkImpl(const Tensor &query, const Tensor &key, const 
-Tensor &weights, 
-    const Tensor &actSeqKey, const Tensor &blockTable, Tensor &topkRes, 
-    const int selectedCount, IndexerTile tileConfig, std::set<int> unrollList, 
-    Tensor *tmpOut, Tensor *topkValue) {
-    
-    // 符号化维度
-    SymbolicScalar b = GetInputShape(query, 0);
-    SymbolicScalar s1 = GetInputShape(query, 1);
-    SymbolicScalar blockNum = GetInputShape(key, 0);
-    
-    auto indexN1 = query.GetShape()[SHAPE_DIM2];
-    auto indexD = query.GetShape()[SHAPE_DIM3];
-    auto blockSize = key.GetShape()[1];
-    auto n2 = key.GetShape()[SHAPE_DIM2];
-    auto group = indexN1 / n2;  // 分组数
-    
-    // 核心三重循环
-    LOOP("INDEX_LOOP_BATCH", FunctionType::DYNAMIC_LOOP, bIdx, LoopRange(b)) {
-        auto curSeq = GetTensorData(actSeqKey, {bIdx});
-        
-        LOOP("INDEX_LOOP_S1", FunctionType::DYNAMIC_LOOP, s1Idx, LoopRange(s1)) {
-            auto casualOffset = s1 - s1Idx - 1;  // 因果偏移（自回归推理）
-            auto effSeq = curSeq - casualOffset;
-            auto actBlock = (effSeq + blockSize - 1) / blockSize;  // 有效块数
-            
-            LOOP("INDEX_LOOP_N2", FunctionType::DYNAMIC_LOOP, n2Idx, LoopRange
-            (n2)) {
-                auto bs1n2Offset = bIdx * s1 * n2 + s1Idx * n2 + n2Idx;
-                auto qOffset = bIdx * s1 * indexN1 + s1Idx * indexN1 + n2Idx * 
-                group;
-                
-                // 展开处理模板
-                auto unrollingProcess = [&](int unrollLength, auto &&
-                firstBlockIdx) {
-                    auto curQ = View(query2D, {group, indexD}, {qOffset, 0});
-                    std::vector<Tensor> concatSrcs;
-                    
-                    for (int subblockIdx = 0; subblockIdx < unrollLength; 
-                    subblockIdx++) {
-                        auto blockIdx = firstBlockIdx + subblockIdx;
-                        SymbolicScalar curBlockIdx = GetTensorData(blockTable, 
-                        {bIdx, blockIdx});
-                        
-                        // 获取当前 Key 块（处理边界情况）
-                        auto curK = View(key2D, {blockSize, indexD},
-                            {std::min(blockSize, effSeq - (blockIdx * blockSize)), 
-                            indexD},
-                            {curBlockIdx * blockSize, n2Idx * indexD});
-                        
-                        // Matmul + ReLU + Weight + RowSum 融合
-                        TileShape::Current().SetCubeTile(
-                            {c1Tile[0], c1Tile[1]}, {c1Tile[2], c1Tile[3]}, {c1Tile
-                            [4], c1Tile[5]}, false);
-                        auto mmRes = Matrix::Matmul<false, true>
-                        (DataType::DT_FP32, curQ, curK);
-                        
-                        TileShape::Current().SetVecTile(tileConfig.weightTile);
-                        auto curW = View(weight2D, {group, 1}, {qOffset, 0});
-                        auto wB32 = Cast(curW, DT_FP32);
-                        
-                        auto reluRes = MaxS(mmRes, Element(DT_FP32, 0.0f));
-                        auto mulRes = Mul(reluRes, wB32);
-                        auto sumRes = RowSumSingle(mulRes, 0);
-                        
-                        Assemble(sumRes, {bs1n2Offset, firstBlockIdx * blockSize}, 
-                        localSum);
-                    }
-                };
-                // ... 展开循环调用
-            }
+LOOP("INDEX_LOOP_MATMUL", ..., blockIdx, LoopRange(actBlock), unrollList) {
+    for (int unrollLength : unrollList) {
+        UNROLL(unrollLength) {
+            unrollingProcess(unrollLength, blockIdx);
         }
     }
 }
 ```
-关键技术点 ：
+设计要点 ：
 
-1. 因果偏移处理 ： casualOffset = s1 - s1Idx - 1 确保自回归推理时 Query 只能关注历史位置
-2. 块表索引 ： curBlockIdx = GetTensorData(blockTable, {bIdx, blockIdx}) 从块表获取实际物理块位置
-3. 边界处理 ： std::min(blockSize, effSeq - (blockIdx * blockSize)) 处理最后一个不完整块
-4. 算子融合 ：Matmul、ReLU、Weight 乘法、行求和在单个 Tile 内完成，减少内存访问
-### 3.3 分级 TopK 实现
-文件位置 ： ops/pypto/src/lightning_indexer_pto/op_kernel/lightning_indexer_topk.cpp
+- actBlock ：有效块数，随位置递增
+- unrollList ：支持多种展开长度（如{1, 2, 4}）
+- UNROLL ：NPU特有的循环展开指令，提升指令级并行
+## 三、前131行关键点总结
+### 3.1 核心数据流
+```
+输入张量 → 2D重排 → 块级Matmul → ReLU → Weight融合 → RowSum → localSum
+     │                                                           │
+     └───────────────────────────────────────────────────────────┘
+                          三重循环驱动
+```
+### 3.2 关键设计决策
+决策 实现方式 技术价值 动态形状支持 SymbolicScalar 支持变长输入，避免重复编译 预分配内存 localSum 固定128K大小 避免动态内存分配，提升性能稳定性 因果约束 casualOffset 计算 确保自回归生成的正确性 块级处理 blockSize=128 提升数据局部性，利用缓存 循环展开 unrollingProcess 模板 减少循环开销，提升并行度 算子融合 四操作在单个Tile内完成 减少内存带宽压力
+
+### 3.3 计算量分析
+以 group=64 、 blockSize=128 、 indexD=128 为例：
+
+操作 输入 输出 计算量 Matmul (64,128) × (128,128) (64,128) 64×128×128×2 ≈ 2.1M FLOPs ReLU (64,128) (64,128) 8K操作 Mul (64,128) × (64,1) (64,128) 8K操作 RowSum (64,128) (1,128) 8K操作
+
+单块总计算量 ：约 2.1M FLOPs
+
+## 四、与后段代码的衔接
+前131行计算得到的 localSum 张量，在后段代码中被用于TopK选择：
 
 ```
-ASSERT(selectedCount == 2048);  // DeepSeek V4 固定为 2048
+// 133行之后的TopK选择部分
+ASSERT(selectedCount == 2048);  // 固定选择2048个
 
-const int length2K = selectedCount;
-const int length8K = 1024 * 8;
-const int length32K = 1024 * 32;
-
-LOOP("INDEX_LOOP_TOPK_bs1n2Offset", FunctionType::DYNAMIC_LOOP, bs1n2Offset, 
-LoopRange(b * s1 * n2)) {
-    // ... 计算 effSeq
-    
-    // 分支 1: effSeq ≤ 2K
-    auto lengthIsLE2K = effSeq <= length2K;
-    LOOP("2K_TOPK", FunctionType::DYNAMIC_LOOP, unused, LoopRange(lengthIsLE2K)) {
-        // 直接排序
-        auto [res, tmp] = TopKSort(View(localSum, {1, length2K}, {1, effSeq}, 
-        {bs1n2Offset, 0}), 0);
-        auto resIdx = TopKExtract(res, selectedCount, true);
-        // ... 结果组装
-    }
-    
-    // 分支 2: 2K < effSeq ≤ 8K
-    auto lengthIsLE8K = effSeq <= length8K;
-    auto lengthIsGT2K = effSeq > length2K;
-    LOOP("8K_TOPK", FunctionType::DYNAMIC_LOOP, unused, LoopRange(lengthIsGT2K * 
-    lengthIsLE8K)) {
-        // 直接排序（8K 可在单个 Tile 内处理）
-        auto [res, tmp] = TopKSort(View(padX8K, {1, length8K}, {bs1n2Offset, 0}), 
-        0);
-        auto resIdx = TopKExtract(res, selectedCount, true);
-        // ... 结果组装
-    }
-    
-    // 分支 3: effSeq > 8K（两级归并）
-    auto lengthIsGT8K = effSeq > length8K;
-    auto numOf8K = (effSeq - 1) / length8K + 1;
-    
-    // 第一级: 128K → 32K（每 8K 选 top-2048）
-    LOOP("128K_TO_32K_FULL_SORT", FunctionType::DYNAMIC_LOOP, idx1, LoopRange
-    (numOf8KFullBlock * lengthIsGT8K)) {
-        auto ax = View(effSumRes, {1, length8K}, {0, idx1 * length8K});
-        auto [res, tmp] = TopKSort(ax, idx1);
-        Assemble(Assign(View(res, {1, selectedCount * 2}, {0, 0})), 
-            {bs1n2Offset, idx1 * selectedCount * 2}, localY1);
-    }
-    
-    // 第二级: 32K → 8K
-    LOOP("32K_TO_8K_MERGE", FunctionType::DYNAMIC_LOOP, idx2, LoopRange(numOf32K * 
-    lengthIsGT8K)) {
-        auto res = TopKMerge(View(localY1, {1, length8K * 2}, {bs1n2Offset, idx2 * 
-        length8K * 2}), selectedCount);
-        Assemble(Assign(View(res, {1, selectedCount * 2}, {0, 0})), 
-            {bs1n2Offset, idx2 * selectedCount * 2}, localY2);
-    }
-    
-    // 第三级: 8K → 2K（最终结果）
-    LOOP("8K_TO_2K_MERGE", FunctionType::DYNAMIC_LOOP, unused, LoopRange(1 * 
-    lengthIsGT8K)) {
-        auto res = TopKMerge(View(localY2, {1, length8K * 2}, {bs1n2Offset, 0}), 
-        selectedCount);
-        auto resIdx = TopKExtract(res, selectedCount, true);
-        // ... 结果组装
-    }
-}
+// 根据effSeq选择算法路径：
+// - effSeq ≤ 2K：直接TopKSort
+// - 2K < effSeq ≤ 8K：直接TopKSort  
+// - effSeq > 8K：两级归并
 ```
-技术亮点 ：
+数据流完整路径 ：
 
-1. 条件循环 ：使用 LoopRange(condition) 实现条件分支，避免显式 if-else 带来的控制流开销
-2. TopKMerge ：专用于归并已排序子序列的高效算子
-3. 内存预分配 ： localY1 、 localY2 等中间结果使用最大尺寸预分配，避免动态内存分配
-## 四、性能分析与优化
-### 4.1 耗时影响因素
-因素 影响程度 量化分析 有效序列长度 高 128K 序列耗时约为 2K 序列的 8-10 倍 Batch Size 高 线性增长（假设内存带宽充足） S1（Query 长度） 中 每个 Query 位置独立计算 Tile 配置 中 影响算子内部并行度和缓存命中率 Unroll 长度 低 减少循环开销，提升指令级并行
-
-### 4.2 关键优化技术
-优化技术 代码位置 实现效果 循环展开 unrollingProcess 模板 减少分支预测失败 L2 缓存亲和性 L2CACHE_AFFINITY_SCH 提升数据局部性 表达式融合 CODEGEN_EXPRESSION_FUSION 减少中间结果写入内存 动态形状支持 SymbolicScalar 支持变长输入，避免重复编译
-
+```
+前131行：计算注意力分数 → localSum[B×S1×N2, 128K]
+    ↓
+后183行：TopK选择 → topkRes[B, S1, N2, 2048]
+```
 ## 五、总结
-DeepSeek V4 的 Indexer 模块通过以下核心技术实现了长序列稀疏注意力的高效计算：
+### 5.1 前131行核心功能
+1. 动态形状处理 ：支持变长Batch和序列长度
+2. 因果约束实现 ：确保自回归生成的正确性
+3. 块级稀疏计算 ：基于blockTable实现稀疏块访问
+4. 算子融合优化 ：Matmul+ReLU+Weight+RowSum融合
+5. 循环展开 ：提升指令级并行度
+### 5.2 设计亮点
+亮点 说明 自适应计算 有效序列长度随位置递增，计算量动态调整 内存效率 预分配固定大小缓冲区，避免动态分配 硬件友好 Tile配置和循环展开针对NPU架构优化 稀疏支持 blockTable机制支持高效的稀疏注意力
 
-1. 块级稀疏管理 ：基于 Block Table 跳过无效区域，提升计算效率
-2. 两阶段算子设计 ：Prolog + Indexer 融合，减少内存带宽占用
-3. 分级 TopK 算法 ：针对不同序列长度选择最优算法路径
-4. 量化加速 ：INT8 量化 Query 投影，降低内存占用
-实现位置确认 ：所有核心代码均位于本代码仓的 ops/pypto/src/ 目录下，包括算子定义、核心算法实现、Tiling 策略等，是一个完整的自包含实现。
+### 5.3 后续优化方向
+1. 动态Tile配置 ：根据实际输入形状调整Tile大小
+2. 混合精度计算 ：在保证精度的前提下使用更低精度
+3. 流水线优化 ：将计算和内存访问重叠
