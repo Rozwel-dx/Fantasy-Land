@@ -1,124 +1,152 @@
-Name	Type	Block Num	Input Shapes	Input Data Types	Input Formats	Output Shapes	Output Data Types	Output Formats	Context ID
-HcPreInvRms	HcPreInvRms	40	"2048,4,4096"	DT_BF16	ND	"2048,1"	FLOAT	ND	N/A
-aclnnInplaceCopy_CastAiCore_Cast	Cast	40	"2048,4,4096"	DT_BF16	NCL	"2048,4,4096"	FLOAT	NCL	N/A
-aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	16	"2048,16384;24,16384"	FLOAT;FLOAT	ND;ND	"2048,24"	FLOAT	ND	N/A
-HcPreSinkhorn	HcPreSinkhorn	40	"2048,24;2048,1;3;24;2048,4,4096"	FLOAT;FLOAT;FLOAT;FLOAT;DT_BF16	ND;ND;ND;ND;ND	"2048,4096;2048,4;2048,4,4"	DT_BF16;FLOAT;FLOAT	ND;ND;ND	N/A
-RmsNorm	RmsNorm	40	"2048,4096;4096"	DT_BF16;DT_BF16	ND;ND	"2048,4096;2048,1"	DT_BF16;FLOAT	ND;ND	N/A
-aclnnInplaceCopy_CastAiCore_Cast	Cast	40	"2048,4096"	DT_BF16	ND	"2048,4096"	FLOAT	ND	N/A
-aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	16	"2048,4096;256,4096"	FLOAT;FLOAT	ND;ND	"2048,256"	FLOAT	ND	N/A
-MoeGatingTopKHash	MoeGatingTopKHash	40	"2048,256;256;;"	FLOAT;FLOAT;DT_UNDEFINED;DT_UNDEFINED	ND;ND;NULL;NULL	"2048,6;2048,6;2048,256"	FLOAT;INT32;FLOAT	ND;ND;ND	N/A
-aclnnInplaceCopy_CastAiCore_Cast	Cast	12	"2048,6"	FLOAT	ND	"2048,6"	DT_BF16	ND	N/A
-aclnnHistc_HistogramAiCore_MemSet	MemSet	40	N/A	N/A	N/A	N/A	N/A	N/A	N/A
-aclnnHistc_HistogramAiCore_HistogramV2	HistogramV2	40	"2048,6;;"	INT32;INT32;INT32	ND;ND;ND	"256"	INT32	ND	N/A
-aclnnReduceSum_CastAiCore_Cast	Cast	1	"16,16"	INT32	ND	"16,16"	INT64	ND	N/A
-aclnnReduceSum_ReduceSumOpAiCore_ReduceSum	ReduceSum	16	"16,16;1"	INT64;INT64	ND;ND	"16"	INT64	ND	0
-hcom_allGather__533_508_1	hcom_allGather_	0	N/A	N/A	N/A	N/A	N/A	N/A	N/A
-AivKernel	hcom_allGather_	16	N/A	N/A	N/A	N/A	N/A	N/A	N/A
-aclnnReduceSum_SliceAiCore_Slice	Slice	8	"16,256;2;2"	INT32;INT64;INT64	ND;ND;ND	"16,16"	INT32	ND	N/A
-aclnnReduceSum_CastAiCore_Cast	Cast	1	"16,16"	INT32	ND	"16,16"	INT64	ND	N/A
-aclnnReduceSum_ReduceSumOpAiCore_ReduceSum	ReduceSum	16	"16,16;1"	INT64;INT64	ND;ND	"16"	INT64	ND	0
-aclnnReduceSum_SliceAiCore_Slice	Slice	8	"16,256;2;2"	INT32;INT64;INT64	ND;ND;ND	"16,16"	INT32	ND	N/A
-aclnnReduceSum_CastAiCore_Cast	Cast	1	"16,16"	INT32	ND	"16,16"	INT64	ND	N/A
-aclnnReduceSum_ReduceSumOpAiCore_ReduceSum	ReduceSum	4	"16,16;1"	INT64;INT64	ND;ND	"16"	INT64	ND	0
-aclnnInplaceCopy_SliceAiCore_Slice	Slice	8	"16,256;2;2"	INT32;INT64;INT64	ND;ND;ND	"16,16"	INT32	ND	N/A
-aclnnReduceSum_CastAiCore_Cast	Cast	1	"256"	INT32	ND	"256"	INT64	ND	N/A
-aclnnReduceSum_ReduceSumOpAiCore_ReduceSum	ReduceSum	1	"256;1"	INT64;INT64	ND;ND	""	INT64	ND	0
-aclnnRepeatInterleave_RepeatInterleave_RepeatInterleave	RepeatInterleave	40	"256;256"	INT32;INT32	ND;ND	"8267"	INT32	ND	N/A
-MoeTokenPermute	MoeTokenPermute	40	"2048,4096;2048,6"	DT_BF16;INT32	ND;ND	"12288,4096;12288"	DT_BF16;INT32	ND;ND	0
-aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	40	"12288,4096"	DT_BF16	ND	"12288,4096;12288"	INT8;FLOAT	ND;ND	N/A
-hcom_alltoallv__533_509_1	hcom_alltoallv_	0	N/A	N/A	N/A	N/A	N/A	N/A	N/A
-AivKernel	hcom_alltoallv_	32	N/A	N/A	N/A	N/A	N/A	N/A	N/A
-AivKernel	hcom_alltoallv_	32	N/A	N/A	N/A	N/A	N/A	N/A	N/A
-hcom_alltoallv__533_510_1	hcom_alltoallv_	0	N/A	N/A	N/A	N/A	N/A	N/A	N/A
-MoeTokenPermute	MoeTokenPermute	40	"8267,1;8267"	FLOAT;INT32	ND;ND	"8267,1;8267"	FLOAT;INT32	ND;ND	0
-MoeTokenPermute	MoeTokenPermute	40	"8267,4096;8267"	INT8;INT32	ND;ND	"8267,4096;8267"	INT8;INT32	ND;ND	0
-aclnnCumsum_CumsumAiCpu_Cumsum	Cumsum	0	"16;1"	INT64;INT64	ND;ND	"16"	INT64	ND	N/A
-aclnnGroupedMatmulSwigluQuantWeightNZ_GroupedMatmulSwigluQuant_GroupedMatmulSwigluQuant	GroupedMatmulSwigluQuant	20	"8267,4096;16,128,256,16,32;16,4096;8267;16"	INT8;INT8;FLOAT;FLOAT;INT64	ND;FRACTAL_NZ;ND;ND;ND	"8267,2048;8267"	INT8;FLOAT	ND;ND	0
-aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	40	"2048,4096"	DT_BF16	ND	"2048,4096;2048"	INT8;FLOAT	ND;ND	N/A
-aclnnGroupedMatmulWeightNz_GroupedMatmul_GroupedMatmul	GroupedMatmul	20	"8267,2048;16,2048,4096;;16,4096;;;;16;8267"	INT8;INT8;INT32;DT_BF16;FLOAT;FLOAT16;FLOAT16;INT64;FLOAT	ND;FRACTAL_NZ;ND;ND;ND;ND;ND;ND;ND	"8267,4096"	DT_BF16	ND	0
-aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	20	"2048,4096;128,256,16,32;4096"	INT8;INT8;DT_BF16	ND;FRACTAL_NZ;ND	"2048,4096"	INT32	ND	N/A
-MoeTokenUnpermute	MoeTokenUnpermute	40	"8267,4096;8267;"	DT_BF16;INT32;DT_UNDEFINED	ND;ND;NULL	"8267,4096"	DT_BF16	ND	N/A
-AivKernel	hcom_alltoallv_	32	N/A	N/A	N/A	N/A	N/A	N/A	N/A
-hcom_alltoallv__533_511_1	hcom_alltoallv_	0	N/A	N/A	N/A	N/A	N/A	N/A	N/A
-allgatherAicpuKernel	allgatherAicpuKernel	0	N/A	N/A	N/A	N/A	N/A	N/A	N/A
-DequantSwigluQuant	DequantSwigluQuant	36	"2048,4096;4096;2048;;;;"	INT32;FLOAT;FLOAT;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED	ND;ND;ND;NULL;NULL;NULL;NULL	"2048,2048;2048"	INT8;FLOAT	ND;ND	N/A
-aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	20	"2048,2048;128,128,16,32;4096;2048"	INT8;INT8;DT_BF16;FLOAT	ND;FRACTAL_NZ;ND;ND	"2048,4096"	DT_BF16	ND	0
-MoeTokenUnpermute	MoeTokenUnpermute	40	"12288,4096;12288;2048,6"	DT_BF16;INT32;DT_BF16	ND;ND;ND	"2048,4096"	DT_BF16	ND	N/A
-aclnnAdd_AddAiCore_Add	Add	40	"2048,4096;2048,4096"	DT_BF16;DT_BF16	ND;ND	"2048,4096"	DT_BF16	ND	N/A
-HcPost	HcPost	40	"1,2048,4096;1,2048,4,4096;1,2048,4;1,2048,4,4"	DT_BF16;DT_BF16;FLOAT;FLOAT	ND;ND;ND;ND	"1,2048,4,4096"	DT_BF16	ND	N/A
-HcPreInvRms	HcPreInvRms	40	"2048,4,4096"	DT_BF16	ND	"2048,1"	FLOAT	ND	N/A
-aclnnInplaceCopy_CastAiCore_Cast	Cast	40	"2048,4,4096"	DT_BF16	NCL	"2048,4,4096"	FLOAT	NCL	N/A
-aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	16	"2048,16384;24,16384"	FLOAT;FLOAT	ND;ND	"2048,24"	FLOAT	ND	N/A
-reduce_scatterAicpuKernel	reduce_scatterAicpuKernel	0	N/A	N/A	N/A	N/A	N/A	N/A	N/A
-HcPreSinkhorn	HcPreSinkhorn	40	"2048,24;2048,1;3;24;2048,4,4096"	FLOAT;FLOAT;FLOAT;FLOAT;DT_BF16	ND;ND;ND;ND;ND	"2048,4096;2048,4;2048,4,4"	DT_BF16;FLOAT;FLOAT	ND;ND;ND	N/A
-RmsNorm	RmsNorm	40	"2048,4096;4096"	DT_BF16;DT_BF16	ND;ND	"2048,4096;2048,1"	DT_BF16;FLOAT	ND;ND	N/A
-hcom_allGather__503_1074_1	hcom_allGather_	0	N/A	N/A	N/A	N/A	N/A	N/A	N/A
-aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	40	"8184,4096"	DT_BF16	ND	"8184,4096;8184"	INT8;FLOAT	ND;ND	N/A
-aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	20	"8184,4096;32,256,16,32;1024;8184"	INT8;INT8;DT_BF16;FLOAT	ND;FRACTAL_NZ;ND;ND	"8184,1024"	DT_BF16	ND	0
-RmsNormDynamicQuant	RmsNormDynamicQuant	40	"8184,1024;1024;;;"	DT_BF16;DT_BF16;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED	ND;ND;NULL;NULL;NULL	"8184,1024;1;8184;8184"	INT8;INT8;FLOAT;FLOAT	ND;ND;ND;ND	N/A
-aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	20	"8184,1024;256,64,16,32;8192;8184"	INT8;INT8;DT_BF16;FLOAT	ND;FRACTAL_NZ;ND;ND	"8184,8192"	DT_BF16	ND	0
-triton_rms_kernel	triton_rms_kernel	40	"130944,512"	DT_BF16	ND	"130944,512"	65534	ND	N/A
-InplacePartialRotaryMul	InplacePartialRotaryMul	40	"8184,1,16,512;8184,1,1,64;8184,1,1,64"	DT_BF16;FLOAT;FLOAT	ND;ND;ND	"8184,1,16,512"	DT_BF16	ND	N/A
-aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	20	"8184,4096;16,256,16,32;512;8184"	INT8;INT8;DT_BF16;FLOAT	ND;FRACTAL_NZ;ND;ND	"8184,512"	DT_BF16	ND	0
-RmsNorm	RmsNorm	40	"8184,512;512"	DT_BF16;DT_BF16	ND;ND	"8184,512;8184,1"	DT_BF16;FLOAT	ND;ND	N/A
-InplacePartialRotaryMul	InplacePartialRotaryMul	40	"8184,1,1,512;8184,1,1,64;8184,1,1,64"	DT_BF16;FLOAT;FLOAT	ND;ND;ND	"8184,1,1,512"	DT_BF16	ND	N/A
-aclnnScatterNdUpdateV2_ScatterNdUpdateV2AiCore_ScatterNdUpdateV2	ScatterNdUpdateV2	40	"8848,128,1,512;8184,2;8184,1,512"	DT_BF16;INT32;DT_BF16	NCHW;ND;NCL	"8848,128,1,512"	DT_BF16	NCHW	0
-aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	20	"8184,1024;256,64,16,32;8192;8184"	INT8;INT8;DT_BF16;FLOAT	ND;FRACTAL_NZ;ND;ND	"8184,8192"	DT_BF16	ND	0
-InplacePartialRotaryMul	InplacePartialRotaryMul	40	"8184,1,64,128;8184,1,1,64;8184,1,1,64"	DT_BF16;FLOAT;FLOAT	ND;ND;ND	"8184,1,64,128"	DT_BF16	ND	N/A
-aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	20	"523776,128;128,128"	DT_BF16;DT_BF16	ND;ND	"523776,128"	DT_BF16	ND	N/A
-aclnnMuls_Muls_Muls	Muls	40	"523776,128"	DT_BF16	ND	"523776,128"	DT_BF16	ND	N/A
-Compressor	Compressor	20	"8184,4096;256,4096;256,4096;8848,8,512;4,256;128;2048,64;2048,64;2,131072;3;;2"	DT_BF16;DT_BF16;DT_BF16;FLOAT;FLOAT;DT_BF16;FLOAT;FLOAT;INT32;INT32;DT_UNDEFINED;INT32	ND;ND;ND;ND;ND;ND;ND;ND;ND;ND;NULL;ND	"2048,128;8848,8,512"	DT_BF16;FLOAT	ND;ND	0
-aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	19	"2048,128;128,128"	DT_BF16;DT_BF16	ND;ND	"2048,128"	DT_BF16	ND	N/A
-aclnnMuls_Muls_Muls	Muls	40	"2048,128"	DT_BF16	ND	"2048,128"	DT_BF16	ND	N/A
-aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	16	"8184,4096;64,4096"	DT_BF16;DT_BF16	ND;ND	"8184,64"	DT_BF16	ND	N/A
-aclnnMuls_Muls_Muls	Muls	40	"8184,64"	DT_BF16	ND	"8184,64"	DT_BF16	ND	N/A
-aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	40	"8184,64,128"	DT_BF16	NCL	"8184,64,128;8184,64"	INT8;FLOAT	NCL;ND	N/A
-aclnnInplaceCopy_CastAiCore_Cast	Cast	40	"8184,64"	FLOAT	ND	"8184,64"	FLOAT16	ND	N/A
-aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	16	"2048,128"	DT_BF16	ND	"2048,128;2048"	INT8;FLOAT	ND;ND	N/A
-aclnnInplaceCopy_CastAiCore_Cast	Cast	2	"2048,1"	FLOAT	ND	"2048,1"	FLOAT16	ND	N/A
-aclnnScatterNdUpdateV2_ScatterNdUpdateV2AiCore_ScatterNdUpdateV2	ScatterNdUpdateV2	40	"8848,128,1,128;2048,2;2048,128"	INT8;INT32;INT8	NCHW;ND;ND	"8848,128,1,128"	INT8	NCHW	0
-aclnnScatterNdUpdateV2_ScatterNdUpdateV2AiCore_ScatterNdUpdateV2	ScatterNdUpdateV2	40	"8848,128,1,1;2048,2;2048,1,1"	FLOAT16;INT32;FLOAT16	NCHW;ND;NCL	"8848,128,1,1"	FLOAT16	NCHW	0
-aclnnInplaceCopy_CastAiCore_Cast	Cast	40	"8184,64"	DT_BF16	ND	"8184,64"	FLOAT16	ND	N/A
-QuantLightningIndexer	QuantLightningIndexer	20	"8184,64,128;8848,128,1,128;8184,64;8184,64;8848,128,1;2;2;2,8192;1024"	INT8;INT8;FLOAT16;FLOAT16;FLOAT16;INT32;INT32;INT32;INT32	ND;ND;ND;ND;ND;ND;ND;ND;ND	"8184,1,512;"	INT32;FLOAT	ND;ND	0
-Compressor	Compressor	20	"8184,4096;1024,4096;1024,4096;8848,8,2048;4,1024;512;2048,64;2048,64;2,131072;3;;2"	DT_BF16;DT_BF16;DT_BF16;FLOAT;FLOAT;DT_BF16;FLOAT;FLOAT;INT32;INT32;DT_UNDEFINED;INT32	ND;ND;ND;ND;ND;ND;ND;ND;ND;ND;NULL;ND	"2048,512;8848,8,2048"	DT_BF16;FLOAT	ND;ND	0
-aclnnScatterNdUpdateV2_ScatterNdUpdateV2AiCore_ScatterNdUpdateV2	ScatterNdUpdateV2	40	"8848,128,1,512;2048,2;2048,512"	DT_BF16;INT32;DT_BF16	NCHW;ND;ND	"8848,128,1,512"	DT_BF16	NCHW	0
-aclnnInplaceCopy_TensorMoveAiCore_TensorMove	TensorMove	40	"8184,512"	INT32	ND	"8184,512"	INT32	ND	N/A
-SparseAttnSharedkv	SparseAttnSharedkv	20	"8184,16,512;8848,128,1,512;8848,128,1,512;;8184,1,512;2,8192;2,8192;3;3;;;2;16;1024"	DT_BF16;DT_BF16;DT_BF16;DT_UNDEFINED;INT32;INT32;INT32;INT32;INT32;DT_UNDEFINED;DT_UNDEFINED;INT32;FLOAT;INT32	ND;ND;ND;NULL;ND;ND;ND;ND;ND;NULL;NULL;ND;ND;ND	"8184,16,512;"	DT_BF16;FLOAT	ND;ND	0
-aclnnInplaceCopy_TensorMoveAiCore_TensorMove	TensorMove	40	"8184,16,512"	DT_BF16	NCL	"8184,16,512"	DT_BF16	NCL	N/A
-aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	2	"8,4096"	DT_BF16	ND	"8,4096;8"	INT8;FLOAT	ND;ND	N/A
-aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	16	"8,4096;32,256,16,32;1024;8"	INT8;INT8;DT_BF16;FLOAT	ND;FRACTAL_NZ;ND;ND	"8,1024"	DT_BF16	ND	0
-RmsNormDynamicQuant	RmsNormDynamicQuant	8	"8,1024;1024;;;"	DT_BF16;DT_BF16;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED	ND;ND;NULL;NULL;NULL	"8,1024;1;8;8"	INT8;INT8;FLOAT;FLOAT	ND;ND;ND;ND	N/A
-aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	16	"8,1024;256,64,16,32;8192;8"	INT8;INT8;DT_BF16;FLOAT	ND;FRACTAL_NZ;ND;ND	"8,8192"	DT_BF16	ND	0
-triton_rms_kernel	triton_rms_kernel	40	"128,512"	DT_BF16	ND	"128,512"	65534	ND	N/A
-InplacePartialRotaryMul	InplacePartialRotaryMul	8	"8,1,16,512;8,1,1,64;8,1,1,64"	DT_BF16;FLOAT;FLOAT	ND;ND;ND	"8,1,16,512"	DT_BF16	ND	N/A
-aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	8	"8,4096;16,256,16,32;512;8"	INT8;INT8;DT_BF16;FLOAT	ND;FRACTAL_NZ;ND;ND	"8,512"	DT_BF16	ND	0
-RmsNorm	RmsNorm	8	"8,512;512"	DT_BF16;DT_BF16	ND;ND	"8,512;8,1"	DT_BF16;FLOAT	ND;ND	N/A
-InplacePartialRotaryMul	InplacePartialRotaryMul	8	"8,1,1,512;8,1,1,64;8,1,1,64"	DT_BF16;FLOAT;FLOAT	ND;ND;ND	"8,1,1,512"	DT_BF16	ND	N/A
-aclnnScatterNdUpdateV2_ScatterNdUpdateV2AiCore_ScatterNdUpdateV2	ScatterNdUpdateV2	8	"8848,128,1,512;8,2;8,1,512"	DT_BF16;INT32;DT_BF16	NCHW;ND;NCL	"8848,128,1,512"	DT_BF16	NCHW	0
-aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	16	"8,1024;256,64,16,32;8192;8"	INT8;INT8;DT_BF16;FLOAT	ND;FRACTAL_NZ;ND;ND	"8,8192"	DT_BF16	ND	0
-InplacePartialRotaryMul	InplacePartialRotaryMul	8	"8,1,64,128;8,1,1,64;8,1,1,64"	DT_BF16;FLOAT;FLOAT	ND;ND;ND	"8,1,64,128"	DT_BF16	ND	N/A
-aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	16	"512,128;128,128"	DT_BF16;DT_BF16	ND;ND	"512,128"	DT_BF16	ND	N/A
-aclnnMuls_Muls_Muls	Muls	40	"512,128"	DT_BF16	ND	"512,128"	DT_BF16	ND	N/A
-Compressor	Compressor	20	"8,4096;256,4096;256,4096;8848,8,512;4,256;128;4,64;4,64;2,131072;3;;2"	DT_BF16;DT_BF16;DT_BF16;FLOAT;FLOAT;DT_BF16;FLOAT;FLOAT;INT32;INT32;DT_UNDEFINED;INT32	ND;ND;ND;ND;ND;ND;ND;ND;ND;ND;NULL;ND	"4,128;8848,8,512"	DT_BF16;FLOAT	ND;ND	0
-aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	8	"4,128;128,128"	DT_BF16;DT_BF16	ND;ND	"4,128"	DT_BF16	ND	N/A
-aclnnMuls_Muls_Muls	Muls	1	"4,128"	DT_BF16	ND	"4,128"	DT_BF16	ND	N/A
-aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	4	"8,4096;64,4096"	DT_BF16;DT_BF16	ND;ND	"8,64"	DT_BF16	ND	N/A
-aclnnMuls_Muls_Muls	Muls	1	"8,64"	DT_BF16	ND	"8,64"	DT_BF16	ND	N/A
-aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	4	"8,64,128"	DT_BF16	NCL	"8,64,128;8,64"	INT8;FLOAT	NCL;ND	N/A
-aclnnInplaceCopy_CastAiCore_Cast	Cast	1	"8,64"	FLOAT	ND	"8,64"	FLOAT16	ND	N/A
-aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	1	"4,128"	DT_BF16	ND	"4,128;4"	INT8;FLOAT	ND;ND	N/A
-aclnnInplaceCopy_CastAiCore_Cast	Cast	1	"4,1"	FLOAT	ND	"4,1"	FLOAT16	ND	N/A
-aclnnScatterNdUpdateV2_ScatterNdUpdateV2AiCore_ScatterNdUpdateV2	ScatterNdUpdateV2	2	"8848,128,1,128;2,2;4,128"	INT8;INT32;INT8	NCHW;ND;ND	"8848,128,1,128"	INT8	NCHW	0
-aclnnScatterNdUpdateV2_ScatterNdUpdateV2AiCore_ScatterNdUpdateV2	ScatterNdUpdateV2	2	"8848,128,1,1;2,2;4,1,1"	FLOAT16;INT32;FLOAT16	NCHW;ND;NCL	"8848,128,1,1"	FLOAT16	NCHW	0
-aclnnInplaceCopy_CastAiCore_Cast	Cast	1	"8,64"	DT_BF16	ND	"8,64"	FLOAT16	ND	N/A
-QuantLightningIndexer	QuantLightningIndexer	20	"8,64,128;8848,128,1,128;8,64;8,64;8848,128,1;2;2;2,8192;1024"	INT8;INT8;FLOAT16;FLOAT16;FLOAT16;INT32;INT32;INT32;INT32	ND;ND;ND;ND;ND;ND;ND;ND;ND	"8,1,512;"	INT32;FLOAT	ND;ND	0
-Compressor	Compressor	20	"8,4096;1024,4096;1024,4096;8848,8,2048;4,1024;512;4,64;4,64;2,131072;3;;2"	DT_BF16;DT_BF16;DT_BF16;FLOAT;FLOAT;DT_BF16;FLOAT;FLOAT;INT32;INT32;DT_UNDEFINED;INT32	ND;ND;ND;ND;ND;ND;ND;ND;ND;ND;NULL;ND	"4,512;8848,8,2048"	DT_BF16;FLOAT	ND;ND	0
-aclnnScatterNdUpdateV2_ScatterNdUpdateV2AiCore_ScatterNdUpdateV2	ScatterNdUpdateV2	2	"8848,128,1,512;2,2;4,512"	DT_BF16;INT32;DT_BF16	NCHW;ND;ND	"8848,128,1,512"	DT_BF16	NCHW	0
-SparseAttnSharedkv	SparseAttnSharedkv	20	"8,16,512;8848,128,1,512;8848,128,1,512;;8,1,512;2,8192;2,8192;3;;;;2;16;1024"	DT_BF16;DT_BF16;DT_BF16;DT_UNDEFINED;INT32;INT32;INT32;INT32;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED;INT32;FLOAT;INT32	ND;ND;ND;NULL;ND;ND;ND;ND;NULL;NULL;NULL;ND;ND;ND	"8,16,512;"	DT_BF16;FLOAT	ND;ND	0
-aclnnNeg_NegAiCore_Neg	Neg	40	"8192,1,1,64"	FLOAT	NCHW	"8192,1,1,64"	FLOAT	ND	N/A
-InplacePartialRotaryMul	InplacePartialRotaryMul	40	"8192,1,16,512;8192,1,1,64;8192,1,1,64"	DT_BF16;FLOAT;FLOAT	ND;ND;ND	"8192,1,16,512"	DT_BF16	ND	N/A
-aclnnTransposeBatchMatMul_TransposeBatchMatMul_TransposeBatchMatMul	TransposeBatchMatMul	20	"8192,2,4096;2,4096,1024"	DT_BF16;DT_BF16	ND;ND	"8192,2,1024"	DT_BF16	ND	N/A
-aclnnMatmul_MatMulV3Common_MatMulV3	MatMulV3	20	"8192,2048;4096,2048"	DT_BF16;DT_BF16	ND;ND	"8192,4096"	DT_BF16	ND	N/A
-hcom_reduceScatter__503_1075_1	hcom_reduceScatter_	0	N/A	N/A	N/A	N/A	N/A	N/A	N/A
-aclnnInplaceCopy_TensorMoveAiCore_TensorMove	TensorMove	40	"2048,4096"	DT_BF16	ND	"2048,4096"	DT_BF16	ND	N/A
-HcPost	HcPost	40	"1,2048,4096;1,2048,4,4096;1,2048,4;1,2048,4,4"	DT_BF16;DT_BF16;FLOAT;FLOAT	ND;ND;ND;ND	"1,2048,4,4096"	DT_BF16	ND	N/A
+算子名	算子类型	输入shape	输入shape含义	输出shape	输出shape含义	备注	代码仓	代码位置	同序列长度影响因素			参数	符号	值	固定值	含义	备注
+HcPreInvRms	HcPreInvRms	"1024,4,4096"	x=[N_pre_hc , hc , D]	"1024,1"	inv_rms = [N_pre_hc , 1]				flashcommon开关与TP数影响			hidden_size	D	4096	是		模型配置
+aclnnCast_CastAiCore_Cast	Cast	"1024,4,4096"	[N_pre_hc , hc , D]	"1024,4,4096"	[N_pre_hc , hc , D]				flashcommon开关与TP数影响			q_lora_rank	q_lora	1024	是		模型配置
+aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	"1024,16384;24,16384"	"x_flat=[N_pre_hc , hc*D];
+hc_fn=[mix_hc , hc*D]"	"1024,24"	mixes=[N_pre_hc , mix_hc]				flashcommon开关与TP数影响			kv_lora_rank	kv_lora	512			
+HcPreSinkhorn	HcPreSinkhorn	"1024,24;1024,1;3;24;1024,4,4096"	"mixes=[N_pre_hc , mix_hc];
+inv_rms=[N_pre_hc , 1];
+[hc_scale];
+[hc_base];
+x=[N_pre_hc , hc , D]"	"1024,4096;1024,4;1024,4,4"	"y=[N_pre_hc , D];
+post=[N_pre_hc , hc];
+comb=[N_pre_hc , hc , hc]"				flashcommon开关与TP数影响			n_heads (q)	H_q	8	否		H_q=num_attention_heads/TP=64/TP
+RmsNorm	RmsNorm	"1024,4096;4096"	"x=[N_pre_hc , D];
+weight=[D]"	"1024,4096;1024,1"	"y=[N_pre_hc , D];
+rstd=[N_pre_hc , 1]"				flashcommon开关与TP数影响			n_heads (kv)	H_kv	1			
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	"8192,4096"	x=[N_pre , D]	"8192,4096;8192"	"quant=[N_pre , D];
+scale=[N_pre]"				固定，与切分策略无关			head_dim	d_h	512	是		模型配置
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	"8192,4096;32,256,16,32;1024;8192"	"x_quant=[N_pre , D];
+wq_a_weight NZ=[q_lora / c_n , D / c_k , c_k , c_n];
+[q_lora];
+scale=[N_pre]"	"8192,1024"	q_a=[N_pre , q_lora]				固定，与切分策略无关			partial_rotary_dim	d_rot	64			
+RmsNorm	RmsNorm	"8192,1024;1024"	"q_a=[N_pre , q_lora];
+weight=[q_lora]"	"8192,1024;8192,1"	"q_norm=[N_pre , q_lora];
+rstd=[N_pre , 1]"				固定，与切分策略无关			hc_mult	hc	4	是		模型配置
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	"8192,1024"	[N_pre , q_lora]	"8192,1024;8192"	"[N_pre , q_lora];
+[N_pre]"				？			mix_hc	-	24			
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	"8192,1024;128,64,16,32;4096;8192"	"q_norm_quant=[N_pre , q_lora];
+wq_b_weight NZ=[H_q * d_h / c_n , q_lora / c_k , c_k , c_n];
+[H_q * d_h];
+scale=[N_pre]"	"8192,4096"	q=[N_pre , H_q * d_h]				TP数影响			index_n_heads	H_idx	64	是		模型配置
+triton_rms_kernel	triton_rms_kernel	"65536,512"	[N_pre * H_q , d_h]	"65536,512"	[N_pre * H_q , d_h]				TP数影响			index_head_dim	d_idx	128	是		模型配置
+InplacePartialRotaryMul	InplacePartialRotaryMul	"8192,1,8,512;8192,1,1,64;8192,1,1,64"	"q=[N_pre , 1 , H_q , d_h];
+cos=[N_pre , 1 , 1 , d_rot];
+sin=[N_pre , 1 , 1 , d_rot]"	"8192,1,8,512"	q_rot=[N_pre , 1 , H_q , d_h]				TP数影响			index_topk	topk	512	是		模型配置
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	"8192,4096"	[N_pre , D]	"8192,4096;8192"	"[N_pre , D];
+[N_pre]"				？			n_routed_experts	E	256	是		模型配置
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	"8192,4096;16,256,16,32;512;8192"	"x=[N_pre , D];
+wkv_a_weight_NZ=[q_lora / c_n , D / c_k , c_k , c_n];
+[kv_lora];
+scale=[N_pre]"	"8192,512"	kv=[N_pre , kv_lora]				固定，与切分策略无关			n_local_experts	E_loc	16			
+RmsNorm	RmsNorm	"8192,512;512"	"kv=[N_pre , kv_lora];
+[kv_lora]"	"8192,512;8192,1"	"kv_norm=[N_pre , kv_lora];
+rstd=[N_pre , 1]"				固定，与切分策略无关			moe_intermediate_size	I	2048			
+InplacePartialRotaryMul	InplacePartialRotaryMul	"8192,1,1,512;8192,1,1,64;8192,1,1,64"	"kv=[N_pre , 1 , H_kv , kv_lora];
+cos=[N_pre , 1 , 1 , d_rot];
+sin=[N_pre , 1 , 1 , d_rot]"	"8192,1,1,512"	kv_rot=[N_pre , 1 , 1 , kv_lora]				固定，与切分策略无关（kv投影）	Q投影该算子受切分策略影响		num_tokens (prefill, hc)	N_pre_hc	8078	否	进入HC Pre算子的token数	N_pre_hc=(N_pre+N_dec)/TP_hc
+aclnnScatterNdUpdate_ScatterNdUpdateAiCore_ScatterNdUpdate	ScatterNdUpdate	"1355776,512;8192,1;8192,1,512"		"1355776,512"								num_tokens (prefill, attn)	N_pre	8064			
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	"8192,1024"	[N_pre , q_lora]	"8192,1024;8192"	"[N_pre , q_lora];
+[N_pre]"							num_tokens (decode)	N_dec	14			
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	"8192,1024;256,64,16,32;8192;8192"	"q_norm_quant=[N_pre , q_lora];
+wq_b_weight NZ=[256 , 64 , 16 , 32];
+[8192];
+scale=[N_pre]"	"8192,8192"	q=[N_pre , 8192]				固定，与切分策略无关			KV cache slots	S_kv	6528			
+InplacePartialRotaryMul	InplacePartialRotaryMul	"8192,1,64,128;8192,1,1,64;8192,1,1,64"	"q=[N_pre , 1 , H_idx , d_idx];
+cos=[N_pre , 1 , 1 , d_rot];
+sin=[N_pre , 1 , 1 , d_rot]"	"8192,1,64,128"	q_rot=[N_pre , 1 , H_idx , d_idx]				固定，与切分策略无关			KV block_size	B_kv	128	否		
+aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	"524288,128;128,128"	"cmp_kv_flat=[N_pre * H_idx , d_idx];
+weights_proj_w[d_idx , d_idx]"	"524288,128"	[N_pre * H_idx , d_idx]				固定，与切分策略无关			KV num_blocks	N_blk	51	否		
+aclnnMuls_Muls_Muls	Muls	"524288,128"	[N_pre * H_idx , d_idx]	"524288,128"	[N_pre * H_idx , d_idx]				固定，与切分策略无关			cmp_ratio (C4)	cmp4	4			
+Compressor	Compressor	"8192,4096;256,4096;256,4096;10592,128,256;10592,128,256;4,256;128;2049,64;2049,64;1,1040;1,1040;2;;1"		"2049,128;10592,128,256;10592,128,256;;;;"								compressor head_dim (Indexer)	d_cmp_idx	128			
+aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	"2049,128;128,128"		"2049,128"								compressor head_dim (Attn)	d_cmp_attn	512			
+aclnnMuls_Muls_Muls	Muls	"2049,128"		"2049,128"								coff (C4)	coff	2			
+aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	"8192,4096;64,4096"		"8192,64"								total_cmp_blocks	T_cmp	9824			
+aclnnMuls_Muls_Muls	Muls	"8192,64"		"8192,64"								cmp_kv_cache_size	S_cmp	1257472			
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	"8192,64,128"		"8192,64,128;8192,64"								tp_hc	TP_hc	1	否		"enable_flashcomm1=False 时固定为1；
+enable_flashcomm1=True 时为TP数"
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	"2049,128"		"2049,128;2049"								NZ_Cube_K	c_k	16	是	input方向小块	
+aclnnCast_CastAiCore_Cast	Cast	"8192,64"		"8192,64"								NZ_Cube_N	c_n	32	是	output方向小块	
+aclnnCast_CastAiCore_Cast	Cast	"2049,1"		"2049,1"								n_local_groups	n_lg	1	否		n_groups // TP_size
+aclnnScatterNdUpdate_ScatterNdUpdateAiCore_ScatterNdUpdate	ScatterNdUpdate	"10846208,128;2049,1;2049,128"		"10846208,128"								n_groups		8	是		flash为8，pro为16
+aclnnScatterNdUpdate_ScatterNdUpdateAiCore_ScatterNdUpdate	ScatterNdUpdate	"10846208,1;2049,1;2049,1"		"10846208,1"								o_lora_rank	o_lora	1024	是		
+aclnnCast_CastAiCore_Cast	Cast	"8192,64"		"8192,64"								T	T	2017		seqlen压缩后序列长度	N_pre//4 + 1
+QuantLightningIndexer	QuantLightningIndexer	"8192,64,128;10592,1024,1,128;8192,64;8192,64;10592,1024,1;1;1;1,33;1024"		"8192,1,512;"													
+Compressor	Compressor	"8192,4096;1024,4096;1024,4096;10592,32,1024;10592,32,1024;4,1024;512;2049,64;2049,64;1,4160;1,4160;2;;1"		"2049,512;10592,32,1024;10592,32,1024;;;;"													
+aclnnScatterNdUpdate_ScatterNdUpdateAiCore_ScatterNdUpdate	ScatterNdUpdate	"1355776,512;2049,1;2049,512"		"1355776,512"													
+SparseAttnSharedkv	SparseAttnSharedkv	"8192,8,512;10592,128,1,512;10592,128,1,512;;8192,1,512;1,1040;1,260;2;2;;;1;8;1024"		"8192,8,512;"													
+aclnnInplaceCopy_TensorMoveAiCore_TensorMove	TensorMove	"8192,8,512"		"8192,8,512"													
+aclnnNeg_NegAiCore_Neg	Neg	"8192,1,1,64"		"8192,1,1,64"													
+InplacePartialRotaryMul	InplacePartialRotaryMul	"8192,1,8,512;8192,1,1,64;8192,1,1,64"		"8192,1,8,512"													
+aclnnTransposeBatchMatMul_TransposeBatchMatMul_TransposeBatchMatMul	TransposeBatchMatMul	"8192,1,4096;1,4096,1024"		"8192,1,1024"													
+aclnnMatmul_MatMulV3Common_MatMulV3	MatMulV3	"8192,1024;4096,1024"		"8192,4096"													
+aclnnInplaceCopy_TensorMoveAiCore_TensorMove	TensorMove	"1024,4096"		"1024,4096"													
+HcPost	HcPost	"1,1024,4096;1,1024,4,4096;1,1024,4;1,1024,4,4"		"1,1024,4,4096"													
+HcPreInvRms	HcPreInvRms	"1024,4,4096"		"1024,1"													
+aclnnCast_CastAiCore_Cast	Cast	"1024,4,4096"		"1024,4,4096"													
+aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	"1024,16384;24,16384"		"1024,24"													
+HcPreSinkhorn	HcPreSinkhorn	"1024,24;1024,1;3;24;1024,4,4096"		"1024,4096;1024,4;1024,4,4"													
+RmsNorm	RmsNorm	"1024,4096;4096"		"1024,4096;1024,1"													
+aclnnCast_CastAiCore_Cast	Cast	"1024,4096"		"1024,4096"													
+aclnnMm_CastAiCore_Cast	Cast	"256,4096"		"256,4096"													
+aclnnMm_MatMulCommon_MatMulV2	MatMulV2	"1024,4096;256,4096"		"1024,256"													
+MoeGatingTopKHash	MoeGatingTopKHash	"1024,256;256;;"		"1024,6;1024,6;1024,256"													
+aclnnCast_CastAiCore_Cast	Cast	"1024,6"		"1024,6"													
+aclnnCast_CastAiCore_Cast	Cast	"1024,6"		"1024,6"													
+DispatchFFNCombine	DispatchFFNCombine	"1024,4096;16,4096,4096;16,2048,4096;1024,6;65536;65536;1024,6"		"1024,4096;16"													
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	"1024,4096"		"1024,4096;1024"													
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	"1024,4096;128,256,16,32;4096"		"1024,4096"													
+DequantSwigluQuant	DequantSwigluQuant	"1024,4096;4096;1024;;;;"		"1024,2048;1024"													
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	"1024,2048;128,128,16,32;4096;1024"		"1024,4096"													
+aclnnInplaceCopy_TensorMoveAiCore_TensorMove	TensorMove	"4194304"		"4194304"													
+muls_add_kernel	muls_add_kernel	"1024,4096;1024,4096"		"1024,4096"													
+HcPost	HcPost	"1,1024,4096;1,1024,4,4096;1,1024,4;1,1024,4,4"		"1,1024,4,4096"													
+HcPreInvRms	HcPreInvRms	"1024,4,4096"		"1024,1"													
+aclnnCast_CastAiCore_Cast	Cast	"1024,4,4096"		"1024,4,4096"													
+aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	"1024,16384;24,16384"		"1024,24"													
+HcPreSinkhorn	HcPreSinkhorn	"1024,24;1024,1;3;24;1024,4,4096"		"1024,4096;1024,4;1024,4,4"													
+RmsNorm	RmsNorm	"1024,4096;4096"		"1024,4096;1024,1"													
+hcom_allGather__503_102_1	hcom_allGather_	N/A		N/A													
+reduce_scatterAicpuKernel	reduce_scatterAicpuKernel	N/A		N/A													
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	"8192,4096"		"8192,4096;8192"													
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	"8192,4096;32,256,16,32;1024;8192"		"8192,1024"													
+RmsNorm	RmsNorm	"8192,1024;1024"		"8192,1024;8192,1"													
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	"8192,1024"		"8192,1024;8192"													
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	"8192,1024;128,64,16,32;4096;8192"		"8192,4096"													
+triton_rms_kernel	triton_rms_kernel	"65536,512"		"65536,512"													
+InplacePartialRotaryMul	InplacePartialRotaryMul	"8192,1,8,512;8192,1,1,64;8192,1,1,64"		"8192,1,8,512"													
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	"8192,4096"		"8192,4096;8192"													
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	"8192,4096;16,256,16,32;512;8192"		"8192,512"													
+RmsNorm	RmsNorm	"8192,512;512"		"8192,512;8192,1"													
+InplacePartialRotaryMul	InplacePartialRotaryMul	"8192,1,1,512;8192,1,1,64;8192,1,1,64"		"8192,1,1,512"													
+aclnnScatterNdUpdate_ScatterNdUpdateAiCore_ScatterNdUpdate	ScatterNdUpdate	"1355776,512;8192,1;8192,1,512"		"1355776,512"													
+Compressor	Compressor	"8192,4096;512,4096;512,4096;10592,64,512;10592,64,512;128,512;512;65,64;65,64;1,2080;1,2080;2;;1"		"65,512;10592,64,512;10592,64,512;;;;"													
+aclnnScatterNdUpdate_ScatterNdUpdateAiCore_ScatterNdUpdate	ScatterNdUpdate	"1355776,512;65,1;65,512"		"1355776,512"													
+SparseAttnSharedkv	SparseAttnSharedkv	"8192,8,512;10592,128,1,512;10592,128,1,512;;;1,1040;1,9;2;2;;;1;8;1024"		"8192,8,512;"													
+aclnnInplaceCopy_TensorMoveAiCore_TensorMove	TensorMove	"8192,8,512"		"8192,8,512"													
+aclnnNeg_NegAiCore_Neg	Neg	"8192,1,1,64"		"8192,1,1,64"													
+InplacePartialRotaryMul	InplacePartialRotaryMul	"8192,1,8,512;8192,1,1,64;8192,1,1,64"		"8192,1,8,512"													
+aclnnTransposeBatchMatMul_TransposeBatchMatMul_TransposeBatchMatMul	TransposeBatchMatMul	"8192,1,4096;1,4096,1024"		"8192,1,1024"													
+aclnnMatmul_MatMulV3Common_MatMulV3	MatMulV3	"8192,1024;4096,1024"		"8192,4096"													
+hcom_reduceScatter__503_103_1	hcom_reduceScatter_	N/A		N/A													
+allgatherAicpuKernel	allgatherAicpuKernel	N/A		N/A													
+aclnnInplaceCopy_TensorMoveAiCore_TensorMove	TensorMove	"1024,4096"		"1024,4096"													
+HcPost	HcPost	"1,1024,4096;1,1024,4,4096;1,1024,4;1,1024,4,4"		"1,1024,4,4096"													
+HcPreInvRms	HcPreInvRms	"1024,4,4096"		"1024,1"													
+aclnnCast_CastAiCore_Cast	Cast	"1024,4,4096"		"1024,4,4096"													
+aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	"1024,16384;24,16384"		"1024,24"													
+HcPreSinkhorn	HcPreSinkhorn	"1024,24;1024,1;3;24;1024,4,4096"		"1024,4096;1024,4;1024,4,4"													
+RmsNorm	RmsNorm	"1024,4096;4096"		"1024,4096;1024,1"													
+aclnnCast_CastAiCore_Cast	Cast	"1024,4096"		"1024,4096"													
+aclnnMm_CastAiCore_Cast	Cast	"256,4096"		"256,4096"													
+aclnnMm_MatMulCommon_MatMulV2	MatMulV2	"1024,4096;256,4096"		"1024,256"													
+MoeGatingTopKHash	MoeGatingTopKHash	"1024,256;256;;"		"1024,6;1024,6;1024,256"													
+aclnnCast_CastAiCore_Cast	Cast	"1024,6"		"1024,6"													
+aclnnCast_CastAiCore_Cast	Cast	"1024,6"		"1024,6"													
+DispatchFFNCombine	DispatchFFNCombine	"1024,4096;16,4096,4096;16,2048,4096;1024,6;65536;65536;1024,6"		"1024,4096;16"													
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	"1024,4096"		"1024,4096;1024"													
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	"1024,4096;128,256,16,32;4096"		"1024,4096"													
+DequantSwigluQuant	DequantSwigluQuant	"1024,4096;4096;1024;;;;"		"1024,2048;1024"													
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	"1024,2048;128,128,16,32;4096;1024"		"1024,4096"													
+aclnnInplaceCopy_TensorMoveAiCore_TensorMove	TensorMove	"4194304"		"4194304"													
+muls_add_kernel	muls_add_kernel	"1024,4096;1024,4096"		"1024,4096"													
+HcPost	HcPost	"1,1024,4096;1,1024,4,4096;1,1024,4;1,1024,4,4"		"1,1024,4,4096"													
