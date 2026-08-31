@@ -1,0 +1,57 @@
+涉及的切分策略与特性开关
+类别	名称	影响
+切分	TP（张量并行）	Q 头数 H_q_local=64/TP；MoE 中间维 I/TP
+切分	SP（序列并行，enable_sp/enable_flashcomm1）	HC 算子第一维 T_hc = T/TP（不开启时为 T 且不切分）
+切分	EP（专家并行）	E_loc = n_routed_experts/EP
+切分	显存分配（受 DP/TP 间接影响）	num_blocks、部分 block_size
+特性	--block-size / Ascend patch	Indexer KEY cache 的 block_size（1024 vs 128）
+cmp_ratio、coff、head_dim、q_lora_rank、kv_lora_rank 等属于模型/层配置，非切分策略，下面不列。
+
+各算子 shape 受哪些影响（结论）
+1. HC 预/后处理 —— 受 SP/flashcomm1（+TP）
+算子	结论
+HcPreInvRms / Cast / MatMulV2(hc_fn) / HcPreSinkhorn / RmsNorm(1024)	第一维 = T/TP，受 SP/flashcomm1 开关 + TP
+HcPost	同上（[1,1024,...] 的第二维）
+2. Q 投影
+算子	结论
+DynamicQuant(x) / QBMV3(wq_a) / RmsNorm(q) / DynamicQuant(q)	不切分（q_lora_rank 不分片）
+QBMV3(wq_b) / triton_rms_kernel / InplacePartialRotaryMul(q)	受 TP（输出/第三维 = 64/TP × 512 = 4096）
+3. KV 投影 —— 不切分
+算子	结论
+DynamicQuant(x,kv) / QBMV3(wkv_a) / RmsNorm(kv) / InplacePartialRotaryMul(kv)	不切分（MLA 共享 KV，H_kv=1，kv_lora 不分片）
+ScatterNdUpdate(主 KV, 1355776,512)	第一维受 显存分配（num_blocks），block_size 固定 128
+4. Indexer
+算子	结论
+QBMV3(indexer wq_b) / InplacePartialRotaryMul(indexer q) / MatMulV2(weights_proj) / Muls	不切分（ReplicatedLinear，H_idx=64 不分片）
+ScatterNdUpdate(indexer kv/scale, 10846208,...)	受 block_size 特性（--block-size vs patch 硬编码 128）+ 显存分配
+5. Compressor —— 受层配置 + 显存分配（切分策略仅间接）
+算子	结论
+Compressor（x/wkv/wgate/ape/state/cmp_kv）	维度受 head_dim、cmp_ratio、coff；state_cache 的 num_blocks/block_size 受 显存分配；cmp_kv 第一维 T_c = min(T, T/r+1) 受 cmp_ratio
+MatMulV2/Muls(2049,128) / DynamicQuant(2049,128) / Cast(2049,1) / ScatterNdUpdate(...,2049,...)	第一维受 cmp_ratio（T_c）
+6. QuantLightningIndexer
+算子	结论
+QuantLightningIndexer	key 的 block_size 受 --block-size/patch 特性（1024 vs 128）；num_blocks 受显存分配；block_table 的 max_blocks 受 block_size + cmp_ratio
+7. SparseAttnSharedkv
+算子	结论
+SparseAttnSharedkv	q 第三维受 TP（H_q_local）；cmp_block_table 的 max_blocks 受 cmp_ratio；num_blocks 受显存分配
+8. O 投影
+算子	结论
+TensorMove(8192,8,512) / InplacePartialRotaryMul(q) / TransposeBatchMatMul / MatMulV3(o_proj)	受 TP（输入 4096 = H_q_local × d_h）
+Neg	不切分
+TensorMove(1024,4096)	受 SP（第一维 T/TP）
+9. MoE
+算子	结论
+Cast/MatMulV2(gate) / MoeGatingTopKHash / Cast(1024,6)	第一维受 SP；gate 输出 256=E 不分片
+DispatchFFNCombine	受 SP（T_hc）+ EP（E_loc=16）；中间维 I=2048 是否切分视 EP/TP 模式
+QBMV3(w1/w2, 共享专家 dense MLP) / DequantSwigluQuant	受 TP（moe_intermediate_size 切分 I/TP）；启用 EP 时不切分
+DynamicQuant / muls_add_kernel(1024,4096)	受 SP（第一维 T/TP）
+10. 通信算子
+算子	结论
+hcom_allGather / reduce_scatter / allgatherAicpuKernel / reduce_scatterAicpuKernel	受 SP/flashcomm1（T/TP ↔ T 的序列聚合/切分）
+一句话总结
+受 TP：Q 投影的 wq_b 系、O 投影系、SparseAttnSharedkv 的 q、MoE 共享专家的 w1/w2
+受 SP/flashcomm1：全部 HC 算子、MoE 的 gate/dispatch 系、通信算子（第一维 1024 vs 8192）
+受 EP：DispatchFFNCombine 的 E_loc
+受显存分配：所有 KV cache/state_cache 的 num_blocks
+受特性（block-size/patch）：Indexer KEY cache 的 block_size
+不切分：wq_a、kv 投影、Indexer q 投影、weights_proj
