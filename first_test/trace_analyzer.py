@@ -1,5 +1,4 @@
 import argparse
-from ast import main
 import logging
 import os
 import re
@@ -303,7 +302,7 @@ class TraceAnalyzer:
                     insert_row += int(img.height / ROW_HEIGHT) + 2
                     chart_col_index = BASE_COL_INDEX
 
-        # ---------- 图 3：IRQ Top10 -> proc_irq_detail!H2 ----------
+        # ---------- 图 3：IRQ Top10 -> proc_irq_detail!G2 ----------
         if not df_proc_irq.empty and "irq_time_s" in df_proc_irq.columns:
             ws_proc_irq = wb["proc_irq_detail"]
             df_proc_irq = df_proc_irq.copy()
@@ -332,7 +331,7 @@ class TraceAnalyzer:
             )
             
             img = Image(buf)
-            ws_proc_irq.add_image(img, "H2")
+            ws_proc_irq.add_image(img, "G2")
 
         wb.save(excel_path)
 
