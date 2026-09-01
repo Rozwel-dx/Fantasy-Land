@@ -22,7 +22,7 @@ MAX_COL_WIDTH = 20
 # task_summary_by_process_pid表每张图中最多展示20个pid，其余部分进行拆分
 MAX_PID_PER_CHART = 20
 # task_summary_by_process_pid表每种comm图的起始列
-BASE_COL_INDEX = 12
+BASE_COL_INDEX = 15
 ROW_HEIGHT = 15
 
 TaskKey = namedtuple("TaskKey", ["cpu", "comm", "pid"])
@@ -45,7 +45,7 @@ MIGRATE_RE = re.compile(
 
 
 class TaskStats:
-    __slots__ = ("running", "sleeping", "runnable", "cs_count", "preempt_cs_count", "preempt_time_s", "migrate_count", "irqs")
+    __slots__ = ("running", "sleeping", "runnable", "cs_count", "preempt_cs_count", "preempt_time_s", "d_state_count", "d_state_time_s", "migrate_count", "irqs")
 
     def __init__(self):
         self.running = Decimal("0")
@@ -54,6 +54,8 @@ class TaskStats:
         self.cs_count = 0
         self.preempt_cs_count = 0
         self.preempt_time_s = Decimal("0")
+        self.d_state_count = 0
+        self.d_state_time_s = Decimal("0")
         self.migrate_count = 0
         self.irqs = defaultdict(lambda: {"count": 0, "time": Decimal("0")})
 
@@ -90,7 +92,9 @@ class TraceAnalyzer:
 
     @staticmethod
     def classify_prev_state(prev_state_str: str) -> str:
-        if any(ch in prev_state_str for ch in ("S", "D", "K", "W", "T")):
+        if "D" in prev_state_str:
+            return "d_state"
+        if any(ch in prev_state_str for ch in ("S", "K", "W", "T")):
             return "sleeping"
         elif "R" in prev_state_str:
             return "preempted"
@@ -213,7 +217,7 @@ class TraceAnalyzer:
     ) -> None:
         wb = load_workbook(excel_path)
 
-        # ---------- 图 1：Top10 running_s -> task_summary_by_comm!K2 ----------
+        # ---------- 图 1：Top10 running_s -> task_summary_by_comm!M2 ----------
         if not df_summary_by_comm.empty and "running_s" in df_summary_by_comm.columns:
             ws_comm = wb["task_summary_by_comm"]
             df_top10_comm = df_summary_by_comm.sort_values("running_s", ascending=False).head(10)
@@ -229,7 +233,7 @@ class TraceAnalyzer:
             )
             
             img = Image(buf)
-            ws_comm.add_image(img, "K2")
+            ws_comm.add_image(img, "M2")
 
         # ---------- 图 2：每个 comm 的 PID 指标 -> task_summary_by_process_pid ----------
         if not df_summary_by_comm.empty and not df_summary_by_process_pid.empty:
@@ -245,6 +249,11 @@ class TraceAnalyzer:
             if "preempt_time_s" in df_pid.columns:
                 df_pid["preempt_time_ms"] = df_pid["preempt_time_s"] * 1000
                 metrics.append(("preempt_time_ms", "Preempt Time (ms)"))
+            if "d_state_count" in df_pid.columns:
+                metrics.append(("d_state_count", "D-State Count"))
+            if "d_state_time_s" in df_pid.columns:
+                df_pid["d_state_time_ms"] = df_pid["d_state_time_s"] * 1000
+                metrics.append(("d_state_time_ms", "D-State Time (ms)"))
             if "migrate_count" in df_pid.columns:
                 metrics.append(("migrate_count", "CPU Migration Count"))
             if "irq_total_time_s" in df_pid.columns:
@@ -373,6 +382,15 @@ class TraceAnalyzer:
                 self.stats[key].sleeping += dt
             self.offcpu[pid] = OffCPUState("runnable", timestamp, oc.cpu)
             return
+        if pid in self.offcpu and self.offcpu[pid].state == "d_state":
+            oc = self.offcpu[pid]
+            dt = timestamp - oc.timestamp
+            if dt > 0:
+                comm_name = self.pid_comm.get(pid, comm)
+                key = self.get_task_key(oc.cpu, comm_name, pid)
+                self.stats[key].d_state_time_s += dt
+            self.offcpu[pid] = OffCPUState("runnable", timestamp, oc.cpu)
+            return
         if pid in self.offcpu and self.offcpu[pid].state == "preempted":
             oc = self.offcpu[pid]
             dt = timestamp - oc.timestamp
@@ -397,6 +415,8 @@ class TraceAnalyzer:
             self.stats[key].cs_count += 1
             if prev_state_cat == "preempted":
                 self.stats[key].preempt_cs_count += 1
+            elif prev_state_cat == "d_state":
+                self.stats[key].d_state_count += 1
         if next_pid != 0 and next_pid in self.offcpu:
             oc = self.offcpu.pop(next_pid)
             dt = timestamp - oc.timestamp
@@ -405,6 +425,8 @@ class TraceAnalyzer:
                 key = self.get_task_key(cpu, comm, next_pid)
                 if oc.state == "sleeping":
                     self.stats[key].sleeping += dt
+                elif oc.state == "d_state":
+                    self.stats[key].d_state_time_s += dt
                 elif oc.state == "preempted":
                     self.stats[key].preempt_time_s += dt
                 elif oc.state == "runnable":
@@ -523,6 +545,8 @@ class TraceAnalyzer:
                 "cs_count": s.cs_count,
                 "preempt_cs_count": s.preempt_cs_count,
                 "preempt_time_s": s.preempt_time_s,
+                "d_state_count": s.d_state_count,
+                "d_state_time_s": s.d_state_time_s,
                 "migrate_count": s.migrate_count,
                 "irq_total_count": irq_total_count,
                 "irq_total_time_s": irq_total_time
@@ -564,13 +588,16 @@ class TraceAnalyzer:
         
         # 定义所有需要的列，确保即使数据为空也能创建正确的DataFrame
         summary_cols = ["cpu", "comm", "pid", "running_s", "sleeping_s", "runnable_s",
-                        "cs_count", "preempt_cs_count", "preempt_time_s", "migrate_count",
+                        "cs_count", "preempt_cs_count", "preempt_time_s",
+                        "d_state_count", "d_state_time_s", "migrate_count",
                         "irq_total_count", "irq_total_time_s"]
         by_comm_cols = ["comm", "running_s", "sleeping_s", "runnable_s",
-                        "cs_count", "preempt_cs_count", "preempt_time_s", "migrate_count",
+                        "cs_count", "preempt_cs_count", "preempt_time_s",
+                        "d_state_count", "d_state_time_s", "migrate_count",
                         "irq_total_count", "irq_total_time_s"]
         by_pid_cols = ["comm", "pid", "running_s", "sleeping_s", "runnable_s",
-                        "cs_count", "preempt_cs_count", "preempt_time_s", "migrate_count",
+                        "cs_count", "preempt_cs_count", "preempt_time_s",
+                        "d_state_count", "d_state_time_s", "migrate_count",
                         "irq_total_count", "irq_total_time_s"]
         
         if df_summary.empty:
@@ -586,6 +613,8 @@ class TraceAnalyzer:
                 "cs_count": "sum",
                 "preempt_cs_count": "sum",
                 "preempt_time_s": "sum",
+                "d_state_count": "sum",
+                "d_state_time_s": "sum",
                 "migrate_count": "sum",
                 "irq_total_count": "sum",
                 "irq_total_time_s": "sum"
@@ -598,6 +627,8 @@ class TraceAnalyzer:
                 "cs_count": "sum",
                 "preempt_cs_count": "sum",
                 "preempt_time_s": "sum",
+                "d_state_count": "sum",
+                "d_state_time_s": "sum",
                 "migrate_count": "sum",
                 "irq_total_count": "sum",
                 "irq_total_time_s": "sum"
