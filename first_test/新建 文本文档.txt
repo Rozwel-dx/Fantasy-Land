@@ -1,57 +1,408 @@
-涉及的切分策略与特性开关
-类别	名称	影响
-切分	TP（张量并行）	Q 头数 H_q_local=64/TP；MoE 中间维 I/TP
-切分	SP（序列并行，enable_sp/enable_flashcomm1）	HC 算子第一维 T_hc = T/TP（不开启时为 T 且不切分）
-切分	EP（专家并行）	E_loc = n_routed_experts/EP
-切分	显存分配（受 DP/TP 间接影响）	num_blocks、部分 block_size
-特性	--block-size / Ascend patch	Indexer KEY cache 的 block_size（1024 vs 128）
-cmp_ratio、coff、head_dim、q_lora_rank、kv_lora_rank 等属于模型/层配置，非切分策略，下面不列。
+算子名	算子类型	Duration(us)	dtype	format	输入shape	输入shape含义	dtype	format	输出shape	输出shape含义	同序列长度影响因素
+HcPreInvRms	HcPreInvRms	44.281	DT_BF16	ND	"1024,4,4096"	x=[N_tk_hc , hc , D]	FLOAT	ND	"1024,1"	inv_rms = [N_tk_hc , 1]	HC算子，受flashcommon开关与TP数影响
+aclnnCast_CastAiCore_Cast	Cast	31.161	DT_BF16	NCL	"1024,4,4096"	[N_tk_hc , hc , D]	FLOAT	NCL	"1024,4,4096"	[N_tk_hc , hc , D]	HC算子，受flashcommon开关与TP数影响
+aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	114.602	FLOAT;FLOAT	ND;ND	"1024,16384;24,16384"	"x_flat=[N_tk_hc , hc*D];
+hc_fn=[mix_hc , hc*D]"	FLOAT	ND	"1024,24"	mixes=[N_tk_hc , mix_hc]	HC算子，受flashcommon开关与TP数影响
+HcPreSinkhorn	HcPreSinkhorn	139.963	FLOAT;FLOAT;FLOAT;FLOAT;DT_BF16	ND;ND;ND;ND;ND	"1024,24;1024,1;3;24;1024,4,4096"	"mixes=[N_tk_hc , mix_hc];
+inv_rms=[N_tk_hc , 1];
+[hc_scale];
+[hc_base];
+x=[N_tk_hc , hc , D]"	DT_BF16;FLOAT;FLOAT	ND;ND;ND	"1024,4096;1024,4;1024,4,4"	"y=[N_tk_hc , D];
+post=[N_tk_hc , hc];
+comb=[N_tk_hc , hc , hc]"	HC算子，受flashcommon开关与TP数影响
+RmsNorm	RmsNorm	33.94	DT_BF16;DT_BF16	ND;ND	"1024,4096;4096"	"x=[N_tk_hc , D];
+weight=[D]"	DT_BF16;FLOAT	ND;ND	"1024,4096;1024,1"	"y=[N_tk_hc , D];
+rstd=[N_tk_hc , 1]"	HC算子，受flashcommon开关与TP数影响
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	113.642	DT_BF16	ND	"8192,4096"	x=[N_tk , D]	INT8;FLOAT	ND;ND	"8192,4096;8192"	"quant=[N_tk , D];
+scale=[N_tk]"	固定，与切分策略无关
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	134.503	INT8;INT8;DT_BF16;FLOAT	ND;FRACTAL_NZ;ND;ND	"8192,4096;32,256,16,32;1024;8192"	"x_quant=[N_tk , D];
+wq_a_weight NZ=[q_lora / c_n , D / c_k , c_k , c_n];
+[q_lora];
+scale=[N_tk]"	DT_BF16	ND	"8192,1024"	q_a=[N_tk , q_lora]	"固定，(wq_a)与切分策略无关
+attention与indexer存在差异"
+RmsNorm	RmsNorm	47.461	DT_BF16;DT_BF16	ND;ND	"8192,1024;1024"	"q_a=[N_tk , q_lora];
+weight=[q_lora]"	DT_BF16;FLOAT	ND;ND	"8192,1024;8192,1"	"q_norm=[N_tk , q_lora];
+rstd=[N_tk , 1]"	固定，(q)与切分策略无关
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	64.341	DT_BF16	ND	"8192,1024"	[N_tk , q_lora]	INT8;FLOAT	ND;ND	"8192,1024;8192"	"[N_tk , q_lora];
+[N_tk]"	固定，与切分策略无关
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	184.304	INT8;INT8;DT_BF16;FLOAT	ND;FRACTAL_NZ;ND;ND	"8192,1024;128,64,16,32;4096;8192"	"q_norm_quant=[N_tk , q_lora];
+wq_b_weight NZ=[H_q * d_h / c_n , q_lora / c_k , c_k , c_n];
+[H_q * d_h];
+scale=[N_tk]"	DT_BF16	ND	"8192,4096"	q=[N_tk , H_q * d_h]	TP数影响
+triton_rms_kernel	triton_rms_kernel	93.622	DT_BF16	ND	"65536,512"	[N_tk * H_q , d_h]	65533	ND	"65536,512"	[N_tk * H_q , d_h]	TP数影响
+InplacePartialRotaryMul	InplacePartialRotaryMul	40.9	DT_BF16;DT_BF16;DT_BF16	ND;ND;ND	"8192,1,8,512;8192,1,1,64;8192,1,1,64"	"q=[N_tk , 1 , H_q , d_h];
+cos=[N_tk , 1 , 1 , d_rot];
+sin=[N_tk , 1 , 1 , d_rot]"	DT_BF16	ND	"8192,1,8,512"	q_rot=[N_tk , 1 , H_q , d_h]	(q)受TP数影响
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	126.523	DT_BF16	ND	"8192,4096"	[N_tk , D]	INT8;FLOAT	ND;ND	"8192,4096;8192"	"[N_tk , D];
+[N_tk]"	固定，与切分策略无关
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	81.122	INT8;INT8;DT_BF16;FLOAT	ND;FRACTAL_NZ;ND;ND	"8192,4096;16,256,16,32;512;8192"	"x=[N_tk , D];
+wkv_a_weight_NZ=[kv_lora / c_n , D / c_k , c_k , c_n];
+[kv_lora];
+scale=[N_tk]"	DT_BF16	ND	"8192,512"	kv=[N_tk , kv_lora]	固定，与切分策略无关
+RmsNorm	RmsNorm	33.98	DT_BF16;DT_BF16	ND;ND	"8192,512;512"	"kv=[N_tk , kv_lora];
+[kv_lora]"	DT_BF16;FLOAT	ND;ND	"8192,512;8192,1"	"kv_norm=[N_tk , kv_lora];
+rstd=[N_tk , 1]"	固定，与切分策略无关
+InplacePartialRotaryMul	InplacePartialRotaryMul	23.081	DT_BF16;DT_BF16;DT_BF16	ND;ND;ND	"8192,1,1,512;8192,1,1,64;8192,1,1,64"	"kv=[N_tk , 1 , H_kv , kv_lora];
+cos=[N_tk , 1 , 1 , d_rot];
+sin=[N_tk , 1 , 1 , d_rot]"	DT_BF16	ND	"8192,1,1,512"	kv_rot=[N_tk , 1 , 1 , kv_lora]	固定，（kv投影）与切分策略无关
+aclnnScatterNdUpdate_ScatterNdUpdateAiCore_ScatterNdUpdate	ScatterNdUpdate	349.387	DT_BF16;INT32;DT_BF16	ND;ND;NCL	"1355776,512;8192,1;8192,1,512"	"cmp_kv_cache=[S_cmp , d_h];
+indices=[N_tk , 1];
+updates=[N_tk , H_kv, d_cmp_attn]"	DT_BF16	ND	"1355776,512"	[S_cmp , d_h]	固定，与切分策略无关; 第一维受显存分配(num_blocks)影响，kv_block_size固定为128
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	64.221	DT_BF16	ND	"8192,1024"	[N_tk , q_lora]	INT8;FLOAT	ND;ND	"8192,1024;8192"	"[N_tk , q_lora];
+[N_tk]"	固定，与切分策略无关
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	337.707	INT8;INT8;DT_BF16;FLOAT	ND;FRACTAL_NZ;ND;ND	"8192,1024;256,64,16,32;8192;8192"	"q_norm_quant=[N_tk , q_lora];
+wq_b_weight NZ=[H_idx * d_idx / c_n , q_lora / c_k , c_k , c_n];
+[H_idx * d_idx];
+scale=[N_tk]"	DT_BF16	ND	"8192,8192"	q=[N_tk , H_idx * d_idx]	固定，与切分策略无关
+InplacePartialRotaryMul	InplacePartialRotaryMul	194.324	DT_BF16;DT_BF16;DT_BF16	ND;ND;ND	"8192,1,64,128;8192,1,1,64;8192,1,1,64"	"q=[N_tk , 1 , H_idx , d_idx];
+cos=[N_tk , 1 , 1 , d_rot];
+sin=[N_tk , 1 , 1 , d_rot]"	DT_BF16	ND	"8192,1,64,128"	q_rot=[N_tk , 1 , H_idx , d_idx]	固定，(indexer q)与切分策略无关
+aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	109.882	DT_BF16;DT_BF16	ND;ND	"524288,128;128,128"	"cmp_kv_flat=[N_tk * H_idx , d_idx];
+weights_proj_w=[d_idx , d_idx]"	DT_BF16	ND	"524288,128"	[N_tk * H_idx , d_idx]	固定，(weights_proj)与切分策略无关
+aclnnMuls_Muls_Muls	Muls	156.063	DT_BF16	ND	"524288,128"	[N_tk * H_idx , d_idx]	DT_BF16	ND	"524288,128"	[N_tk * H_idx , d_idx]	固定，与切分策略无关
+Compressor	Compressor	380.288	DT_BF16;DT_BF16;DT_BF16;FLOAT;FLOAT;FLOAT;DT_BF16;DT_BF16;DT_BF16;INT32;INT32;INT32;DT_UNDEFINED;INT32	ND;ND;ND;ND;ND;ND;ND;ND;ND;ND;ND;ND;NULL;ND	"8192,4096;256,4096;256,4096;10592,128,256;10592,128,256;4,256;128;2049,64;2049,64;1,1040;1,1040;2;;1"	"x=[N_tk , D];
+wkv=[coff * d_cmp_idx , D];
+wgate=[coff * d_cmp_idx , D];
+state_cache_k=[N_blk , B_kv , coff * d_cmp_idx];
+state_cache_v=[N_blk , B_kv , coff * d_cmp_idx];
+ape=[cmp_ratio , coff * d_cmp_idx];
+norm_weight=[d_cmp_idx];
+cos=[T , H_idx];
+sin=[T , H_idx];
+kv_cache=[B , max_model_len / B_kv];
+cmp_kv_cache=[B , max_model_len / B_kv];
+[coff];
+[];
+cache_mode=[1]"	DT_BF16;FLOAT;FLOAT;DT_BF16;DT_BF16;DT_BF16;DT_BF16	ND;ND;ND;ND;ND;ND;ND	"2049,128;10592,128,256;10592,128,256;;;;"	"[T , d_cmp_idx];
+[N_blk , B_kv , coff * d_cmp_idx];
+[N_blk , B_kv , coff * d_cmp_idx];
+[]…"	与切分策略无关; 受显存分配(num_blocks)与(block_size, swa/c4/c128有差异)影响，受cmp_ratio影响，coff可能变化
+aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	9.92	DT_BF16;DT_BF16	ND;ND	"2049,128;128,128"	"[T, B_kv]
+[B_kv, B_kv]"	DT_BF16	ND	"2049,128"	[T, B_kv]	Compressor层第一维受cmp_ratio影响
+aclnnMuls_Muls_Muls	Muls	7.32	DT_BF16	ND	"2049,128"	[T, B_kv]	DT_BF16	ND	"2049,128"	[T, B_kv]	Compressor层第一维受cmp_ratio影响
+aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	34.501	DT_BF16;DT_BF16	ND;ND	"8192,4096;64,4096"	"x=[N_tk , D];
+weights_proj_w=[H_idx , D]"	DT_BF16	ND	"8192,64"	weights=[N_tk , H_idx]	固定，(weights_proj)与切分策略无关
+aclnnMuls_Muls_Muls	Muls	3.6	DT_BF16	ND	"8192,64"	[N_tk , H_idx]	DT_BF16	ND	"8192,64"	[N_tk , H_idx]	固定，与切分策略无关
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	2005.2	DT_BF16	NCL	"8192,64,128"	q_indexer=[N_tk , H_idx , d_idx]	INT8;FLOAT	NCL;ND	"8192,64,128;8192,64"	"quant=[N_tk , H_idx , d_idx];
+scale=[N_tk , H_idx]"	固定，与切分策略无关
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	14.72	DT_BF16	ND	"2049,128"	cmp_kv=[T, d_cmp_idx]	INT8;FLOAT	ND;ND	"2049,128;2049"	"quant=[T , d_cmp_idx];
+scale=[T]"	Compressor层第一维受cmp_ratio影响
+aclnnCast_CastAiCore_Cast	Cast	7.82	FLOAT	ND	"8192,64"	[N_tk , H_idx]	FLOAT16	ND	"8192,64"	[N_tk , H_idx]	固定，与切分策略无关
+aclnnCast_CastAiCore_Cast	Cast	1.22	FLOAT	ND	"2049,1"	[T , 1]	FLOAT16	ND	"2049,1"	[T , 1]	Compressor层第一维受cmp_ratio影响
+aclnnScatterNdUpdate_ScatterNdUpdateAiCore_ScatterNdUpdate	ScatterNdUpdate	474.27	INT8;INT32;INT8	ND;ND;ND	"10846208,128;2049,1;2049,128"	"cmp_kv_cache=[T_cmp , d_cmp];
+indices=[T , 1];
+updates=[T , d_cmp_idx]"	INT8	ND	"10846208,128"	[T_cmp, d_cmp_idx]	固定，与切分策略无关; 第一维受显存分配(num_blocks)与(--block-size)影响，受cmp_ratio影响
+aclnnScatterNdUpdate_ScatterNdUpdateAiCore_ScatterNdUpdate	ScatterNdUpdate	126.242	FLOAT16;INT32;FLOAT16	ND;ND;ND	"10846208,1;2049,1;2049,1"	"cmp_kv_scale_cache=[T_cmp , 1];
+indices=[T , 1];
+updates=[T , 1]"	FLOAT16	ND	"10846208,1"	[T_cmp , 1]	固定，与切分策略无关; 第一维受显存分配(num_blocks)与(--block-size)影响，受cmp_ratio影响
+aclnnCast_CastAiCore_Cast	Cast	10.521	DT_BF16	ND	"8192,64"	[N_tk , H_idx]	FLOAT16	ND	"8192,64"	[N_tk , H_idx]	固定，与切分策略无关
+QuantLightningIndexer	QuantLightningIndexer	15132.52	INT8;INT8;FLOAT16;FLOAT16;FLOAT16;INT32;INT32;INT32;INT32	ND;ND;ND;ND;ND;ND;ND;ND;ND	"8192,64,128;10592,1024,1,128;8192,64;8192,64;10592,1024,1;1;1;1,33;1024"	"q=[N_tk , H_idx , d_idx];
+weights=[N_blk , bl_s , H_kv , d_idx];
+key=[N_tk , H_idx];
+q_dequant_scale=[N_tk , H_idx];
+key_dequant_scale=[N_blk , bl_s , H_kv];
+actual_seq_lengths_query=[1];
+actual_seq_lengths_key=[1];
+block_table=[B , m_bl];
+[matadata];"	INT32;FLOAT	ND;ND	"8192,1,512;"	sparse_indices=[N_tk , 1 , topk]	固定，与切分策略无关; 第一维受显存分配(num_blocks)与(--block-size)影响，受cmp_ratio影响
+Compressor	Compressor	940.899	DT_BF16;DT_BF16;DT_BF16;FLOAT;FLOAT;FLOAT;DT_BF16;DT_BF16;DT_BF16;INT32;INT32;INT32;DT_UNDEFINED;INT32	ND;ND;ND;ND;ND;ND;ND;ND;ND;ND;ND;ND;NULL;ND	"8192,4096;1024,4096;1024,4096;10592,32,1024;10592,32,1024;4,1024;512;2049,64;2049,64;1,4160;1,4160;2;;1"	"x=[N_tk , D];
+wkv=[coff * d_cmp_attn , D];
+wgate=[coff * d_cmp_attn , D];
+state_cache_k=[N_blk , B_kv , coff * d_cmp_idx];
+state_cache_v=[N_blk , B_kv , coff * d_cmp_idx];
+ape=[cmp_ratio , coff * d_cmp_attn];
+norm_weight=[d_cmp_attn];
+cos=[T , H_idx];
+sin=[T , H_idx];
+kv_cache=[1 , max_model_len / B_kv];
+cmp_kv_cache=[1 , max_model_len / B_kv];
+[coff];
+[];
+cache_mode=[1]"	DT_BF16;FLOAT;FLOAT;DT_BF16;DT_BF16;DT_BF16;DT_BF16	ND;ND;ND;ND;ND;ND;ND	"2049,512;10592,32,1024;10592,32,1024;;;;"	"[T , d_cmp_attn];
+[N_blk , B_kv , coff * d_cmp_attn];
+[N_blk , B_kv , coff * d_cmp_attn];
+[]…"	与切分策略无关; 受显存分配(num_blocks)与(block_size, swa/c4/c128有差异)影响，受cmp_ratio影响，coff可能变化
+aclnnScatterNdUpdate_ScatterNdUpdateAiCore_ScatterNdUpdate	ScatterNdUpdate	133.442	DT_BF16;INT32;DT_BF16	ND;ND;ND	"1355776,512;2049,1;2049,512"	"cmp_kv_cache=[S_cmp , d_cmp_attn];
+indices=[T , 1];
+updates=[T , d_cmp_attn]"	DT_BF16	ND	"1355776,512"	[S_cmp , d_cmp_attn]	固定，与切分策略无关; 第一维受显存分配(num_blocks)影响，受cmp_ratio影响，kv_block_size固定为128
+SparseAttnSharedkv	SparseAttnSharedkv	5648.892	DT_BF16;DT_BF16;DT_BF16;DT_UNDEFINED;INT32;INT32;INT32;INT32;INT32;DT_UNDEFINED;DT_UNDEFINED;INT32;FLOAT;INT32	ND;ND;ND;NULL;ND;ND;ND;ND;ND;NULL;NULL;ND;ND;ND	"8192,8,512;10592,128,1,512;10592,128,1,512;;8192,1,512;1,1040;1,260;2;2;;;1;8;1024"	"q=[N_tk , H_q , d_cmp_attn];
+ori_kv=[N_blk , B_kv , H_kv , d_cmp_attn];
+cmp_kv=[N_blk , B_kv , H_kv , d_cmp_attn];
+ori_sparse_indices=[];
+cmp_sparse_indices=[N_tk , 1 , topk];
+[B , max_model_len // block_size // cmp_ratio_swa + 1];
+[B , max_model_len // block_size // cmp_ratio_c4 + 1];
+ori_mask_mode=[B + 1];
+cmp_mask_mode=[B + 1];
+[]...;
+[1];
+[H_q];
+[metadata];"	DT_BF16;FLOAT	ND;ND	"8192,8,512;"	attn_out=[N_tk , H_q , d_cmp_attn]	受TP数影响，受显存分配(num_blocks)影响，受cmp_ratio影响
+aclnnInplaceCopy_TensorMoveAiCore_TensorMove	TensorMove	59.502	DT_BF16	NCL	"8192,8,512"	[N_tk , TP_hc , d_h]	DT_BF16	NCL	"8192,8,512"	[N_tk , TP_hc , d_h]	受TP数影响
+aclnnNeg_NegAiCore_Neg	Neg	8.44	DT_BF16	NCHW	"8192,1,1,64"	[N_tk , 1 , 1 , d_rot]	DT_BF16	ND	"8192,1,1,64"	[N_tk , 1 , 1 , d_rot]	固定，与切分策略无关
+InplacePartialRotaryMul	InplacePartialRotaryMul	45.401	DT_BF16;DT_BF16;DT_BF16	ND;ND;ND	"8192,1,8,512;8192,1,1,64;8192,1,1,64"	"q=[N_tk , 1 , H_q , d_h];
+cos=[N_tk , 1 , 1 , d_rot];
+sin=[N_tk , 1 , 1 , d_rot]"	DT_BF16	ND	"8192,1,8,512"	q_rot=[N_tk , 1 , H_q , d_h]	(q)受TP数影响
+aclnnTransposeBatchMatMul_TransposeBatchMatMul_TransposeBatchMatMul	TransposeBatchMatMul	234.044	DT_BF16;DT_BF16	ND;ND	"8192,1,4096;1,4096,1024"	"attn_out_flat=[N_tk , 1 , D];
+wo_weight=[1 , D , o_lora]"	DT_BF16	ND	"8192,1,1024"	[N_tk , 1 , q_lora]	受TP数影响
+aclnnMatmul_MatMulV3Common_MatMulV3	MatMulV3	224.505	DT_BF16;DT_BF16	ND;ND	"8192,1024;4096,1024"	"x=[N_tk , n_lg * o_lora];
+wo_weight=[D , n_lg * o_lora]"	DT_BF16	ND	"8192,4096"	y=[N_tk , D]	受TP数影响
+aclnnInplaceCopy_TensorMoveAiCore_TensorMove	TensorMove	16.4	DT_BF16	ND	"1024,4096"	[N_tk_hc , D]	DT_BF16	ND	"1024,4096"	[N_tk_hc , D]	受flashcommon开关与TP数影响
+HcPost	HcPost	95.342	DT_BF16;DT_BF16;FLOAT;FLOAT	ND;ND;ND;ND	"1,1024,4096;1,1024,4,4096;1,1024,4;1,1024,4,4"	"x=[B , N_tk_hc , D];
+residual=[B , N_tk_hc , hc , D];
+post=[B , N_tk_hc , hc];
+comb=[B , N_tk_hc , hc , hc]"	DT_BF16	ND	"1,1024,4,4096"	y=[B , N_tk_hc , hc , D]	HC算子，受flashcommon开关与TP数影响
+HcPreInvRms	HcPreInvRms	44.321	DT_BF16	ND	"1024,4,4096"	x=[N_tk_hc , hc , D]	FLOAT	ND	"1024,1"	inv_rms = [N_tk_hc , 1]	HC算子，受flashcommon开关与TP数影响
+aclnnCast_CastAiCore_Cast	Cast	27.8	DT_BF16	NCL	"1024,4,4096"	[N_tk_hc , hc , D]	FLOAT	NCL	"1024,4,4096"	[N_tk_hc , hc , D]	HC算子，受flashcommon开关与TP数影响
+aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	114.343	FLOAT;FLOAT	ND;ND	"1024,16384;24,16384"	"x_flat=[N_tk_hc , hc*D];
+hc_fn=[mix_hc , hc*D]"	FLOAT	ND	"1024,24"	mixes=[N_tk_hc , mix_hc]	HC算子，受flashcommon开关与TP数影响
+HcPreSinkhorn	HcPreSinkhorn	134.002	FLOAT;FLOAT;FLOAT;FLOAT;DT_BF16	ND;ND;ND;ND;ND	"1024,24;1024,1;3;24;1024,4,4096"	"mixes=[N_tk_hc , mix_hc];
+inv_rms=[N_tk_hc , 1];
+[hc_scale];
+[hc_base];
+x=[N_tk_hc , hc , D]"	DT_BF16;FLOAT;FLOAT	ND;ND;ND	"1024,4096;1024,4;1024,4,4"	"y=[N_tk_hc , D];
+post=[N_tk_hc , hc];
+comb=[N_tk_hc , hc , hc]"	HC算子，受flashcommon开关与TP数影响
+RmsNorm	RmsNorm	33.761	DT_BF16;DT_BF16	ND;ND	"1024,4096;4096"	"x=[N_tk_hc , D];
+weight=[D]"	DT_BF16;FLOAT	ND;ND	"1024,4096;1024,1"	"y=[N_tk_hc , D];
+rstd=[N_tk_hc , 1]"	HC算子，受flashcommon开关与TP数影响
+aclnnCast_CastAiCore_Cast	Cast	10.6	DT_BF16	ND	"1024,4096"	[N_tk_hc , D]	FLOAT	ND	"1024,4096"	[N_tk_hc , D]	HC算子，受flashcommon开关与TP数影响
+aclnnMm_CastAiCore_Cast	Cast	8.44	DT_BF16	ND	"256,4096"	[E , D]	FLOAT	ND	"256,4096"	[E , D]	固定，与切分策略无关
+aclnnMm_MatMulCommon_MatMulV2	MatMulV2	36.961	FLOAT;FLOAT	ND;ND	"1024,4096;256,4096"	"[N_tk_hc , D];
+[E , D]"	FLOAT	ND	"1024,256"	[N_tk_hc , E]	受flashcommon开关与TP数影响
+MoeGatingTopKHash	MoeGatingTopKHash	31.721	FLOAT;FLOAT;DT_UNDEFINED;DT_UNDEFINED	ND;ND;NULL;NULL	"1024,256;256;;"	"scores=[N_tk_hc , E];
+bias=[E];
+[]"	FLOAT;INT32;FLOAT	ND;ND;ND	"1024,6;1024,6;1024,256"	"[N_tk_hc , tk_idx];
+[N_tk_hc , tk_idx];
+[N_tk_hc , E]"	受flashcommon开关与TP数影响
+aclnnCast_CastAiCore_Cast	Cast	2.32	FLOAT	ND	"1024,6"	[N_tk_hc , tk_idx]	DT_BF16	ND	"1024,6"	[N_tk_hc , tk_idx]	HC算子，受flashcommon开关与TP数影响
+aclnnCast_CastAiCore_Cast	Cast	2.18	DT_BF16	ND	"1024,6"	[N_tk_hc , tk_idx]	FLOAT	ND	"1024,6"	[N_tk_hc , tk_idx]	HC算子，受flashcommon开关与TP数影响
+DispatchFFNCombine	DispatchFFNCombine	3226.284	DT_BF16;INT8;INT8;INT32;INT64;INT64;FLOAT	ND;FRACTAL_NZ;FRACTAL_NZ;ND;ND;ND;ND	"1024,4096;16,4096,4096;16,2048,4096;1024,6;65536;65536;1024,6"	"""x=[N_tk_hc , D];
+w1=[E_loc , D , 2*I];
+w2=[E_loc , I , D];
+expertIdx=[N_tk_hc , tk_idx];
+scale1=[E_loc*2*I];
+scale2=[E_loc*2*I];
+probs=[N_tk_hc , tk_idx]"""	DT_BF16;INT32	ND;ND	"1024,4096;16"	"out=[N_tk_hc , D];
+expert_token_nums=[E_loc]"	受flashcommon开关与TP数影响，中间维 I=2048 是否切分视 EP/TP 模式
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	31.941	DT_BF16	ND	"1024,4096"	[N_tk_hc , D]	INT8;FLOAT	ND;ND	"1024,4096;1024"	"quant=[N_tk_hc , D];
+scale=[N_tk_hc]"	固定，与切分策略无关
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	83.842	INT8;INT8;DT_BF16	ND;FRACTAL_NZ;ND	"1024,4096;128,256,16,32;4096"	"x_quant=[N_tk_hc , D];
+w1_NZ=[2*I/c_n , D/c_k , c_k , c_n];
+bias=[D]"	INT32	ND	"1024,4096"	[N_tk_hc , D]	固定，与切分策略无关
+DequantSwigluQuant	DequantSwigluQuant	49.461	INT32;FLOAT;FLOAT;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED	ND;ND;ND;NULL;NULL;NULL;NULL	"1024,4096;4096;1024;;;;"	"[N_tk_hc , D];
+[D];
+[N_tk_hc]"	INT8;FLOAT	ND;ND	"1024,2048;1024"	"[N_tk_hc , I];
+[N_tk_hc]"	受flashcommon开关与TP数影响（可能受EP影响，待验证）
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	61.021	INT8;INT8;DT_BF16;FLOAT	ND;FRACTAL_NZ;ND;ND	"1024,2048;128,128,16,32;4096;1024"	"x_quant=[N_tk_hc , I];
+w2_NZ=[D/c_n , I/c_k , c_k , c_n];
+bias=[D];
+scale=[N_tk_hc]"	DT_BF16	ND	"1024,4096"	[N_tk_hc , D]	固定，与切分策略无关
+aclnnInplaceCopy_TensorMoveAiCore_TensorMove	TensorMove	10.18	DT_BF16	ND	"4194304"	[N_tk_hc * D]	DT_BF16	ND	"4194304"	[N_tk_hc * D]	受flashcommon开关与TP数影响
+muls_add_kernel	muls_add_kernel	21.56	DT_BF16;DT_BF16	ND;ND	"1024,4096;1024,4096"	"[N_tk_hc , D];
+[N_tk_hc , D]"	DT_BF16	ND	"1024,4096"	[N_tk_hc , D]	受flashcommon开关与TP数影响
+HcPost	HcPost	96.142	DT_BF16;DT_BF16;FLOAT;FLOAT	ND;ND;ND;ND	"1,1024,4096;1,1024,4,4096;1,1024,4;1,1024,4,4"	"x=[1 , N_tk_hc , D];
+residual=[1 , N_tk_hc , hc , D];
+post=[1 , N_tk_hc , hc];
+comb=[1 , N_tk_hc , hc , hc]"	DT_BF16	ND	"1,1024,4,4096"	y=[1 , N_tk_hc , hc , D]	HC算子，受flashcommon开关与TP数影响
+HcPreInvRms	HcPreInvRms	44.161	DT_BF16	ND	"1024,4,4096"	x=[N_tk_hc , hc , D]	FLOAT	ND	"1024,1"	inv_rms = [N_tk_hc , 1]	HC算子，受flashcommon开关与TP数影响
+aclnnCast_CastAiCore_Cast	Cast	24.501	DT_BF16	NCL	"1024,4,4096"	[N_tk_hc , hc , D]	FLOAT	NCL	"1024,4,4096"	[N_tk_hc , hc , D]	HC算子，受flashcommon开关与TP数影响
+aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	114.622	FLOAT;FLOAT	ND;ND	"1024,16384;24,16384"	"x_flat=[N_tk_hc , hc*D];
+hc_fn=[mix_hc , hc*D]"	FLOAT	ND	"1024,24"	mixes=[N_tk_hc , mix_hc]	HC算子，受flashcommon开关与TP数影响
+HcPreSinkhorn	HcPreSinkhorn	140.003	FLOAT;FLOAT;FLOAT;FLOAT;DT_BF16	ND;ND;ND;ND;ND	"1024,24;1024,1;3;24;1024,4,4096"	"mixes=[N_tk_hc , mix_hc];
+inv_rms=[N_tk_hc , 1];
+[hc_scale];
+[hc_base];
+x=[N_tk_hc , hc , D]"	DT_BF16;FLOAT;FLOAT	ND;ND;ND	"1024,4096;1024,4;1024,4,4"	"y=[N_tk_hc , D];
+post=[N_tk_hc , hc];
+comb=[N_tk_hc , hc , hc]"	HC算子，受flashcommon开关与TP数影响
+RmsNorm	RmsNorm	33.661	DT_BF16;DT_BF16	ND;ND	"1024,4096;4096"	"x=[N_tk_hc , D];
+weight=[D]"	DT_BF16;FLOAT	ND;ND	"1024,4096;1024,1"	"y=[N_tk_hc , D];
+rstd=[N_tk_hc , 1]"	HC算子，受flashcommon开关与TP数影响
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	112.382	DT_BF16	ND	"8192,4096"	x=[N_tk , D]	INT8;FLOAT	ND;ND	"8192,4096;8192"	"quant=[N_tk , D];
+scale=[N_tk]"	固定，与切分策略无关
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	133.783	INT8;INT8;DT_BF16;FLOAT	ND;FRACTAL_NZ;ND;ND	"8192,4096;32,256,16,32;1024;8192"	"x_quant=[N_tk , D];
+wq_a_weight NZ=[q_lora / c_n , D / c_k , c_k , c_n];
+[q_lora];
+scale=[N_tk]"	DT_BF16	ND	"8192,1024"	q_a=[N_tk , q_lora]	"固定，(wq_a)与切分策略无关
+attention与indexer存在差异"
+RmsNorm	RmsNorm	49.441	DT_BF16;DT_BF16	ND;ND	"8192,1024;1024"	"q_a=[N_tk , q_lora];
+weight=[q_lora]"	DT_BF16;FLOAT	ND;ND	"8192,1024;8192,1"	"q_norm=[N_tk , q_lora];
+rstd=[N_tk , 1]"	固定，(q)与切分策略无关
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	63.841	DT_BF16	ND	"8192,1024"	[N_tk , q_lora]	INT8;FLOAT	ND;ND	"8192,1024;8192"	"quant=[N_tk , q_lora];
+scale=[N_tk]"	固定，与切分策略无关
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	186.664	INT8;INT8;DT_BF16;FLOAT	ND;FRACTAL_NZ;ND;ND	"8192,1024;128,64,16,32;4096;8192"	"q_norm_quant=[N_tk , q_lora];
+wq_b_weight NZ=[H_q * d_h / c_n , q_lora / c_k , c_k , c_n];
+[H_q * d_h];
+scale=[N_tk]"	DT_BF16	ND	"8192,4096"	q=[N_tk , H_q * d_h]	TP数影响
+triton_rms_kernel	triton_rms_kernel	93.882	DT_BF16	ND	"65536,512"	[N_tk * H_q , d_h]	65533	ND	"65536,512"	[N_tk * H_q , d_h]	TP数影响
+InplacePartialRotaryMul	InplacePartialRotaryMul	41.241	DT_BF16;DT_BF16;DT_BF16	ND;ND;ND	"8192,1,8,512;8192,1,1,64;8192,1,1,64"	"q=[N_tk , 1 , H_q , d_h];
+cos=[N_tk , 1 , 1 , d_rot];
+sin=[N_tk , 1 , 1 , d_rot]"	DT_BF16	ND	"8192,1,8,512"	q_rot=[N_tk , 1 , H_q , d_h]	(q)受TP数影响
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	127.142	DT_BF16	ND	"8192,4096"	[N_tk , D]	INT8;FLOAT	ND;ND	"8192,4096;8192"	"[N_tk , D];
+[N_tk]"	固定，与切分策略无关
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	79.922	INT8;INT8;DT_BF16;FLOAT	ND;FRACTAL_NZ;ND;ND	"8192,4096;16,256,16,32;512;8192"	"x=[N_tk , D];
+wkv_a_weight_NZ=[kv_lora / c_n , D / c_k , c_k , c_n];
+[kv_lora];
+scale=[N_tk]"	DT_BF16	ND	"8192,512"	kv=[N_tk , kv_lora]	固定，与切分策略无关
+RmsNorm	RmsNorm	40.261	DT_BF16;DT_BF16	ND;ND	"8192,512;512"	"kv=[N_tk , kv_lora];
+[kv_lora]"	DT_BF16;FLOAT	ND;ND	"8192,512;8192,1"	"kv_norm=[N_tk , kv_lora];
+rstd=[N_tk , 1]"	固定，与切分策略无关
+InplacePartialRotaryMul	InplacePartialRotaryMul	22.46	DT_BF16;DT_BF16;DT_BF16	ND;ND;ND	"8192,1,1,512;8192,1,1,64;8192,1,1,64"	"kv=[N_tk , 1 , H_kv , kv_lora];
+cos=[N_tk , 1 , 1 , d_rot];
+sin=[N_tk , 1 , 1 , d_rot]"	DT_BF16	ND	"8192,1,1,512"	kv_rot=[N_tk , 1 , 1 , kv_lora]	固定，（kv投影）与切分策略无关
+aclnnScatterNdUpdate_ScatterNdUpdateAiCore_ScatterNdUpdate	ScatterNdUpdate	340.307	DT_BF16;INT32;DT_BF16	ND;ND;NCL	"1355776,512;8192,1;8192,1,512"	"cmp_kv_cache=[S_cmp , d_h];
+indices=[N_tk , 1];
+updates=[N_tk , H_kv, d_cmp_attn]"	DT_BF16	ND	"1355776,512"	[S_cmp , d_h]	固定，与切分策略无关; 第一维受显存分配(num_blocks)影响，kv_block_size固定为128
+Compressor	Compressor	334.747	DT_BF16;DT_BF16;DT_BF16;FLOAT;FLOAT;FLOAT;DT_BF16;DT_BF16;DT_BF16;INT32;INT32;INT32;DT_UNDEFINED;INT32	ND;ND;ND;ND;ND;ND;ND;ND;ND;ND;ND;ND;NULL;ND	"8192,4096;512,4096;512,4096;10592,64,512;10592,64,512;128,512;512;65,64;65,64;1,2080;1,2080;2;;1"	"x=[N_tk , D];
+wkv=[d_cmp_attn , D];
+wgate=[d_cmp_attn , D];
+state_cache_k=[N_blk , B_kv , coff * d_cmp_idx];
+state_cache_v=[N_blk , B_kv , coff * d_cmp_idx];
+ape=[cmp_ratio , d_cmp_attn];
+norm_weight=[d_cmp_attn];
+cos=[T , H_idx];
+sin=[T , H_idx];
+kv_cache=[1 , max_model_len / B_kv];
+cmp_kv_cache=[1 , max_model_len / B_kv];
+[coff];
+[];
+cache_mode=[1]"	DT_BF16;FLOAT;FLOAT;DT_BF16;DT_BF16;DT_BF16;DT_BF16	ND;ND;ND;ND;ND;ND;ND	"65,512;10592,64,512;10592,64,512;;;;"	"[T , d_cmp_attn];
+[N_blk , B_kv , coff * d_cmp_attn];
+[N_blk , B_kv , coff * d_cmp_attn];
+[]…"	与切分策略无关; 受显存分配(num_blocks)与(block_size, swa/c4/c128有差异)影响，受cmp_ratio影响，coff可能变化
+aclnnScatterNdUpdate_ScatterNdUpdateAiCore_ScatterNdUpdate	ScatterNdUpdate	14.04	DT_BF16;INT32;DT_BF16	ND;ND;ND	"1355776,512;65,1;65,512"	"cmp_kv_cache=[S_cmp , d_cmp_attn];
+indices=[T , 1];
+updates=[T , d_cmp_attn]"	DT_BF16	ND	"1355776,512"	[S_cmp , d_cmp_attn]	固定，与切分策略无关; 第一维受显存分配(num_blocks)影响，受cmp_ratio影响，kv_block_size固定为128
+SparseAttnSharedkv	SparseAttnSharedkv	5226.964	DT_BF16;DT_BF16;DT_BF16;DT_UNDEFINED;DT_UNDEFINED;INT32;INT32;INT32;INT32;DT_UNDEFINED;DT_UNDEFINED;INT32;FLOAT;INT32	ND;ND;ND;NULL;NULL;ND;ND;ND;ND;NULL;NULL;ND;ND;ND	"8192,8,512;10592,128,1,512;10592,128,1,512;;;1,1040;1,9;2;2;;;1;8;1024"	"q=[N_tk , H_q , d_cmp_attn];
+ori_kv=[N_blk , B_kv , H_kv , d_cmp_attn];
+cmp_kv=[N_blk , B_kv , H_kv , d_cmp_attn];
+ori_sparse_indices=[];
+cmp_sparse_indices=[];
+[B , max_model_len // block_size // cmp_ratio_swa + 1];
+[B , max_model_len // block_size // cmp_ratio_c128 + 1];
+ori_mask_mode=[B + 1];
+cmp_mask_mode=[B + 1];
+[]...;
+[1];
+[H_q];
+[metadata];"	DT_BF16;FLOAT	ND;ND	"8192,8,512;"	attn_out=[N_tk , H_q , d_cmp_attn]	受TP数影响，受显存分配(num_blocks)影响，受cmp_ratio影响
+aclnnInplaceCopy_TensorMoveAiCore_TensorMove	TensorMove	36.001	DT_BF16	NCL	"8192,8,512"	[N_tk , TP_hc , d_h]	DT_BF16	NCL	"8192,8,512"	[N_tk , TP_hc , d_h]	受flashcommon开关与TP数影响
+aclnnNeg_NegAiCore_Neg	Neg	9.26	DT_BF16	NCHW	"8192,1,1,64"	[N_tk , 1 , 1 , d_rot]	DT_BF16	ND	"8192,1,1,64"	[N_tk , 1 , 1 , d_rot]	固定，与切分策略无关
+InplacePartialRotaryMul	InplacePartialRotaryMul	42.881	DT_BF16;DT_BF16;DT_BF16	ND;ND;ND	"8192,1,8,512;8192,1,1,64;8192,1,1,64"	"q=[N_tk , 1 , H_q , d_h];
+cos=[N_tk , 1 , 1 , d_rot];
+sin=[N_tk , 1 , 1 , d_rot]"	DT_BF16	ND	"8192,1,8,512"	q_rot=[N_tk , 1 , H_q , d_h]	(q)受TP数影响
+aclnnTransposeBatchMatMul_TransposeBatchMatMul_TransposeBatchMatMul	TransposeBatchMatMul	230.825	DT_BF16;DT_BF16	ND;ND	"8192,1,4096;1,4096,1024"	"attn_out_flat=[N_tk , 1 , D];
+wo_weight=[1 , D , o_lora]"	DT_BF16	ND	"8192,1,1024"	[N_tk , 1 , q_lora]	受TP数影响
+aclnnMatmul_MatMulV3Common_MatMulV3	MatMulV3	224.924	DT_BF16;DT_BF16	ND;ND	"8192,1024;4096,1024"	"x=[N_tk , n_lg * o_lora];
+wo_weight=[D , n_lg * o_lora]"	DT_BF16	ND	"8192,4096"	y=[N_tk , D]	受TP数影响
+aclnnInplaceCopy_TensorMoveAiCore_TensorMove	TensorMove	16.6	DT_BF16	ND	"1024,4096"	[N_tk_hc , D]	DT_BF16	ND	"1024,4096"	[N_tk_hc , D]	受flashcommon开关与TP数影响
+HcPost	HcPost	94.742	DT_BF16;DT_BF16;FLOAT;FLOAT	ND;ND;ND;ND	"1,1024,4096;1,1024,4,4096;1,1024,4;1,1024,4,4"	"x=[1 , N_tk_hc , D];
+residual=[1 , N_tk_hc , hc , D];
+post=[1 , N_tk_hc , hc];
+comb=[1 , N_tk_hc , hc , hc]"	DT_BF16	ND	"1,1024,4,4096"	y=[1 , N_tk_hc , hc , D]	HC算子，受flashcommon开关与TP数影响
+HcPreInvRms	HcPreInvRms	44.561	DT_BF16	ND	"1024,4,4096"	x=[N_tk_hc , hc , D]	FLOAT	ND	"1024,1"	inv_rms = [N_tk_hc , 1]	HC算子，受flashcommon开关与TP数影响
+aclnnCast_CastAiCore_Cast	Cast	25.44	DT_BF16	NCL	"1024,4,4096"	[N_tk_hc , hc , D]	FLOAT	NCL	"1024,4,4096"	[N_tk_hc , hc , D]	HC算子，受flashcommon开关与TP数影响
+aclnnMatmul_MatMulCommon_MatMulV2	MatMulV2	114.342	FLOAT;FLOAT	ND;ND	"1024,16384;24,16384"	"x_flat=[N_tk_hc , hc*D];
+hc_fn=[mix_hc , hc*D]"	FLOAT	ND	"1024,24"	mixes=[N_tk_hc , mix_hc]	HC算子，受flashcommon开关与TP数影响
+HcPreSinkhorn	HcPreSinkhorn	134.303	FLOAT;FLOAT;FLOAT;FLOAT;DT_BF16	ND;ND;ND;ND;ND	"1024,24;1024,1;3;24;1024,4,4096"	"mixes=[N_tk_hc , mix_hc];
+inv_rms=[N_tk_hc , 1];
+[hc_scale];
+[hc_base];
+x=[N_tk_hc , hc , D]"	DT_BF16;FLOAT;FLOAT	ND;ND;ND	"1024,4096;1024,4;1024,4,4"	"y=[N_tk_hc , D];
+post=[N_tk_hc , hc];
+comb=[N_tk_hc , hc , hc]"	HC算子，受flashcommon开关与TP数影响
+RmsNorm	RmsNorm	33.801	DT_BF16;DT_BF16	ND;ND	"1024,4096;4096"	"x=[N_tk_hc , D];
+weight=[D]"	DT_BF16;FLOAT	ND;ND	"1024,4096;1024,1"	"y=[N_tk_hc , D];
+rstd=[N_tk_hc , 1]"	HC算子，受flashcommon开关与TP数影响
+aclnnCast_CastAiCore_Cast	Cast	12.76	DT_BF16	ND	"1024,4096"	[N_tk_hc , D]	FLOAT	ND	"1024,4096"	[N_tk_hc , D]	HC算子，受flashcommon开关与TP数影响
+aclnnMm_CastAiCore_Cast	Cast	7.04	DT_BF16	ND	"256,4096"	[E , D]	FLOAT	ND	"256,4096"	[E , D]	固定，与切分策略无关
+aclnnMm_MatMulCommon_MatMulV2	MatMulV2	37.121	FLOAT;FLOAT	ND;ND	"1024,4096;256,4096"	"x=[N_tk_hc , D];
+gate_w=[E , D]"	FLOAT	ND	"1024,256"	[N_tk_hc , E]	受flashcommon开关与TP数影响
+MoeGatingTopKHash	MoeGatingTopKHash	37.841	FLOAT;FLOAT;DT_UNDEFINED;DT_UNDEFINED	ND;ND;NULL;NULL	"1024,256;256;;"	"scores=[N_tk_hc , E];
+bias=[E];
+[]"	FLOAT;INT32;FLOAT	ND;ND;ND	"1024,6;1024,6;1024,256"	"[N_tk_hc , tk_idx];
+[N_tk_hc , tk_idx];
+[N_tk_hc , E]"	受flashcommon开关与TP数影响
+aclnnCast_CastAiCore_Cast	Cast	2.3	FLOAT	ND	"1024,6"	[N_tk_hc , tk_idx]	DT_BF16	ND	"1024,6"	[N_tk_hc , tk_idx]	受flashcommon开关与TP数影响
+aclnnCast_CastAiCore_Cast	Cast	2.16	DT_BF16	ND	"1024,6"	[N_tk_hc , tk_idx]	FLOAT	ND	"1024,6"	[N_tk_hc , tk_idx]	受flashcommon开关与TP数影响
+DispatchFFNCombine	DispatchFFNCombine	2413.648	DT_BF16;INT8;INT8;INT32;INT64;INT64;FLOAT	ND;FRACTAL_NZ;FRACTAL_NZ;ND;ND;ND;ND	"1024,4096;16,4096,4096;16,2048,4096;1024,6;65536;65536;1024,6"	"x=[N_tk_hc , D];
+w1=[E_loc , D , 2*I];
+w2=[E_loc , I , D];
+expertIdx=[N_tk_hc , tk_idx];
+scale1=[E_loc*2*I];
+scale2=[E_loc*2*I];
+probs=[N_tk_hc , tk_idx]"	DT_BF16;INT32	ND;ND	"1024,4096;16"	"out=[N_tk_hc , D];
+expert_token_nums=[E_loc]"	受flashcommon开关与TP数影响，中间维 I=2048 是否切分视 EP/TP 模式
+aclnnDynamicQuantV2_DynamicQuant_DynamicQuant	DynamicQuant	32.901	DT_BF16	ND	"1024,4096"	[N_tk_hc , D]	INT8;FLOAT	ND;ND	"1024,4096;1024"	"quant=[N_tk_hc , D];
+scale=[N_tk_hc]"	受flashcommon开关与TP数影响
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	81.661	INT8;INT8;DT_BF16	ND;FRACTAL_NZ;ND	"1024,4096;128,256,16,32;4096"	"x_quant=[N_tk_hc , D];
+w1_NZ=[2*I/c_n , D/c_k , c_k , c_n];
+bias=[D]"	INT32	ND	"1024,4096"	[N_tk_hc , D]	受flashcommon开关与TP数影响（可能受EP影响，待验证）
+DequantSwigluQuant	DequantSwigluQuant	52.301	INT32;FLOAT;FLOAT;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED	ND;ND;ND;NULL;NULL;NULL;NULL	"1024,4096;4096;1024;;;;"	"[N_tk_hc , D];
+[D];
+[N_tk_hc]"	INT8;FLOAT	ND;ND	"1024,2048;1024"	"[N_tk_hc , I];
+[N_tk_hc]"	受flashcommon开关与TP数影响（可能受EP影响，待验证）
+aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3	QuantBatchMatmulV3	59.302	INT8;INT8;DT_BF16;FLOAT	ND;FRACTAL_NZ;ND;ND	"1024,2048;128,128,16,32;4096;1024"	"x_quant=[N_tk_hc , I];
+w2_NZ=[D/c_n , I/c_k , c_k , c_n];
+bias=[D];
+scale=[N_tk_hc]"	DT_BF16	ND	"1024,4096"	[N_tk_hc , D]	受flashcommon开关与TP数影响（可能受EP影响，待验证）
+aclnnInplaceCopy_TensorMoveAiCore_TensorMove	TensorMove	9.78	DT_BF16	ND	"4194304"	[N_tk_hc * D]	DT_BF16	ND	"4194304"	[N_tk_hc * D]	受flashcommon开关与TP数影响
+muls_add_kernel	muls_add_kernel	21.24	DT_BF16;DT_BF16	ND;ND	"1024,4096;1024,4096"	"[N_tk_hc , D];
+[N_tk_hc , D]"	DT_BF16	ND	"1024,4096"	[N_tk_hc , D]	受flashcommon开关与TP数影响
+HcPost	HcPost	93.722	DT_BF16;DT_BF16;FLOAT;FLOAT	ND;ND;ND;ND	"1,1024,4096;1,1024,4,4096;1,1024,4;1,1024,4,4"	"x=[1 , N_tk_hc , D];
+residual=[1 , N_tk_hc , hc , D];
+post=[1 , N_tk_hc , hc];
+comb=[1 , N_tk_hc , hc , hc]"	DT_BF16	ND	"1,1024,4,4096"	y=[1 , N_tk_hc , hc , D]	HC算子，受flashcommon开关与TP数影响
 
-各算子 shape 受哪些影响（结论）
-1. HC 预/后处理 —— 受 SP/flashcomm1（+TP）
-算子	结论
-HcPreInvRms / Cast / MatMulV2(hc_fn) / HcPreSinkhorn / RmsNorm(1024)	第一维 = T/TP，受 SP/flashcomm1 开关 + TP
-HcPost	同上（[1,1024,...] 的第二维）
-2. Q 投影
-算子	结论
-DynamicQuant(x) / QBMV3(wq_a) / RmsNorm(q) / DynamicQuant(q)	不切分（q_lora_rank 不分片）
-QBMV3(wq_b) / triton_rms_kernel / InplacePartialRotaryMul(q)	受 TP（输出/第三维 = 64/TP × 512 = 4096）
-3. KV 投影 —— 不切分
-算子	结论
-DynamicQuant(x,kv) / QBMV3(wkv_a) / RmsNorm(kv) / InplacePartialRotaryMul(kv)	不切分（MLA 共享 KV，H_kv=1，kv_lora 不分片）
-ScatterNdUpdate(主 KV, 1355776,512)	第一维受 显存分配（num_blocks），block_size 固定 128
-4. Indexer
-算子	结论
-QBMV3(indexer wq_b) / InplacePartialRotaryMul(indexer q) / MatMulV2(weights_proj) / Muls	不切分（ReplicatedLinear，H_idx=64 不分片）
-ScatterNdUpdate(indexer kv/scale, 10846208,...)	受 block_size 特性（--block-size vs patch 硬编码 128）+ 显存分配
-5. Compressor —— 受层配置 + 显存分配（切分策略仅间接）
-算子	结论
-Compressor（x/wkv/wgate/ape/state/cmp_kv）	维度受 head_dim、cmp_ratio、coff；state_cache 的 num_blocks/block_size 受 显存分配；cmp_kv 第一维 T_c = min(T, T/r+1) 受 cmp_ratio
-MatMulV2/Muls(2049,128) / DynamicQuant(2049,128) / Cast(2049,1) / ScatterNdUpdate(...,2049,...)	第一维受 cmp_ratio（T_c）
-6. QuantLightningIndexer
-算子	结论
-QuantLightningIndexer	key 的 block_size 受 --block-size/patch 特性（1024 vs 128）；num_blocks 受显存分配；block_table 的 max_blocks 受 block_size + cmp_ratio
-7. SparseAttnSharedkv
-算子	结论
-SparseAttnSharedkv	q 第三维受 TP（H_q_local）；cmp_block_table 的 max_blocks 受 cmp_ratio；num_blocks 受显存分配
-8. O 投影
-算子	结论
-TensorMove(8192,8,512) / InplacePartialRotaryMul(q) / TransposeBatchMatMul / MatMulV3(o_proj)	受 TP（输入 4096 = H_q_local × d_h）
-Neg	不切分
-TensorMove(1024,4096)	受 SP（第一维 T/TP）
-9. MoE
-算子	结论
-Cast/MatMulV2(gate) / MoeGatingTopKHash / Cast(1024,6)	第一维受 SP；gate 输出 256=E 不分片
-DispatchFFNCombine	受 SP（T_hc）+ EP（E_loc=16）；中间维 I=2048 是否切分视 EP/TP 模式
-QBMV3(w1/w2, 共享专家 dense MLP) / DequantSwigluQuant	受 TP（moe_intermediate_size 切分 I/TP）；启用 EP 时不切分
-DynamicQuant / muls_add_kernel(1024,4096)	受 SP（第一维 T/TP）
-10. 通信算子
-算子	结论
-hcom_allGather / reduce_scatter / allgatherAicpuKernel / reduce_scatterAicpuKernel	受 SP/flashcomm1（T/TP ↔ T 的序列聚合/切分）
-一句话总结
-受 TP：Q 投影的 wq_b 系、O 投影系、SparseAttnSharedkv 的 q、MoE 共享专家的 w1/w2
-受 SP/flashcomm1：全部 HC 算子、MoE 的 gate/dispatch 系、通信算子（第一维 1024 vs 8192）
-受 EP：DispatchFFNCombine 的 E_loc
-受显存分配：所有 KV cache/state_cache 的 num_blocks
-受特性（block-size/patch）：Indexer KEY cache 的 block_size
-不切分：wq_a、kv 投影、Indexer q 投影、weights_proj
+
+
+
+
+
+
+
+参数	符号	值	固定值	含义	备注
+hidden_size	D	4096	是		模型配置
+q_lora_rank	q_lora	1024	是		模型配置
+kv_lora_rank	kv_lora	512			
+n_heads (q)	H_q	8	否		H_q=num_attention_heads/TP=64/TP
+n_heads (kv)	H_kv	1			
+head_dim	d_h	512	是		模型配置
+partial_rotary_dim	d_rot	64			
+hc_mult	hc	4	是		模型配置
+mix_hc	-	24			
+index_n_heads	H_idx	64	是		模型配置
+index_head_dim	d_idx	128	是		模型配置
+index_topk	topk	512	是		模型配置
+n_routed_experts	E	256	是		模型配置
+n_local_experts	E_loc	16			
+moe_intermediate_size	I	2048			
+num_tokens_hc	N_tk_hc	1024	否	进入HC 算子的token数	N_tk_hc = N_tk // TP_hc
+num_tokens_attn	N_tk	8192	否		max_num_batched_tokens
+					
+KV cache slots	S_kv				
+KV block_size	B_kv	128/8/32	否		swa/c4/c128分别为不同常量
+KV num_blocks	N_blk	10592	否		swa/c4/c128可能block数不同？
+cmp_ratio	cmp4	1/4/128	否		
+compressor head_dim (Indexer)	d_cmp_idx	128	是		
+compressor head_dim (Attn)	d_cmp_attn	512	是		
+coff	coff	2	否		需要进行overlap数据重排时为2，不需要重排时为1
+total_cmp_blocks	T_cmp	10846208	否		N_blk * bl_s
+cmp_kv_cache_size	S_cmp	1355776	否		N_blk * kv_bl
+tp_hc	TP_hc	8	否		"enable_flashcomm1=False 时固定为1；
+enable_flashcomm1=True 时为TP数"
+NZ_Cube_K	c_k	16	是	input方向小块	
+NZ_Cube_N	c_n	32	是	output方向小块	
+n_local_groups	n_lg	1	否		n_groups // TP_size
+n_groups		8	是		flash为8，pro为16
+o_lora_rank	o_lora	1024	是		
+T	T		否	seqlen压缩后序列长度	N_tk// cmp_ratio + 1
+block_size	bl_s	1024	否		vllm-ascend启动参数中设置
+max_blocks	m_bl	1040/260/32	否		max_model_len / block_size / cmp_ratio + 1 = 133120 / 1024 / 4
+matadata	m_d	1024	是	预计算单元	
+batch_size	B	1	否		
+max_model_len		133120	否		vllm-ascend启动参数中设置
+kv_block_size	kv_bl	128	是		硬编码
+num_experts_per_tok	tk_idx	6	是		模型配置
+
