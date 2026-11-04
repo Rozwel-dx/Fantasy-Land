@@ -1,3 +1,38 @@
-VLLM Benchmark,500条
+## Meta service start-up url
+## K8s meta service cluster master-standby high availability scenario: ClusterIP address
+## Non-HA scenario: keep consistent with the same name configuration in mmc-meta.conf
+ock.mmc.meta_service_url = tcp://141.61.133.136:5001
 
-vllm bench serve --backend openai-chat --model {模型权重地址} --served-model-name {模型服务名称} --tokenizer {模型tokenizer地址} --percentile-metrics ttft,tpot,itl,e2el --metric-percentiles 50,95,99 --dataset-name prefix_repetition --request-rate {自行配置} --num-prompts 500 --endpoint /v1/chat/completions --base-url {模型服务访问地址} --ignore-eos --temperature 1 --seed 10801 --prefix-repetition-prefix-len 17408 --prefix-repetition-suffix-len 3072 --prefix-repetition-output-len 200 --prefix-repetition-num-prefixes 20 --extra-body '{"cache_salt":"run-001"}'
+## Config store url, it will automatically modified to PodIP at Pod startup in HA scenario
+## Keep consistent with the same name configuration in mmc-meta.conf
+ock.mmc.local_service.config_store_url = tcp://141.61.133.136:6001
+
+## Log level: debug, info, warn, error
+ock.mmc.log_level = info
+
+## The maximum supported rank count; once ranks are connected, no further modifications are allowed — a meta restart is required
+ock.mmc.local_service.world_size = 256
+
+## Data transfer protocol options:
+#   'device_rdma': RDMA over device, direct data transfer between NPUs, optimized for cluster communication
+#   'device_urma': URMA over device, direct data transfer between NPUs, optimized for cluster communication
+#   'device_uboe': UBoE over device, direct data transfer between NPUs, optimized for cluster communication
+#   'device_sdma': SDMA over device, efficient data transfer using device DMA engine
+#   'host_shm': Shared memory over host, inter-process communication within the same node
+#   'host_urma': RDMA over host UB, user-space RDMA for high-speed data transfer
+#   'host_rdma': RDMA over host, high-speed cross-node data transfer with low latency and high bandwidth
+#   'host_tcp': TCP over host, general network transfer with broad compatibility
+## Dependencies: host_rdma, host_urma and host_tcp require hcom library; host_shm has no external dependencies
+ock.mmc.local_service.protocol = device_urma
+
+## DRAM space usage, configuration type supports 134217728, 2048KB/2048K, 200MB/200mb/200m, 2.5GB or 1TB, case-insensitive, the maximum value is 1TB
+## The system automatically calculates and aligns upwards to 2MB (host_rdma, host_tcp or host_shm) or 1GB (device_sdma, device_rdma, device_urma or device_uboe)
+## In A3 environment all protocol should be aligned to 1GB, otherwise mmc init will fail
+## After alignment, the HBM size and DRAM size cannot both be 0 at the same time
+ock.mmc.local_service.dram.size = 64GB
+ock.mmc.local_service.max.dram.size = 1024GB
+
+## Enable SSD storage via UBS IO (default: false)
+#ock.mmc.local_service.storage.enabled = false
+
+## For more configuration options and advanced parameters, please refer to the official documentation: [MemCache Configuration Guide](https://gitcode.com/Ascend/memcache/blob/master/doc/memcache_config.md)
