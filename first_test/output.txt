@@ -1,83 +1,132 @@
-#set -- "0,1,2,3" "8000" "1" "0" "141.61.45.107" "12321" "1" "1"
-
+# 清除代理环境变量
 unset ftp_proxy FTP_PROXY
 unset https_proxy HTTPS_PROXY
 unset http_proxy HTTP_PROXY
+source /root/.bashrc
+
+unset ftp_proxy
 unset https_proxy
 unset http_proxy
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/
-source ~/.bashrc
+unset HCCL_INTRA_ROCE_ENABLE
 
-nic_name="data0.3001"
-local_ip="172.27.13.180"
+local_ip="xxx"
+nic_name="xxx"
 
 export HCCL_IF_IP=$local_ip
-export GLOO_SOCKET_IFNAME="data0.3001"
-export TP_SOCKET_IFNAME="data0.3001"
-export HCCL_SOCKET_IFNAME="data0.3001"
-
-export VLLM_USE_V2_MODEL_RUNNER=1
-export VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS=3000
-export HCCL_EXEC_TIMEOUT=204
-export HCCL_CONNECT_TIMEOUT=120
+export GLOO_SOCKET_IFNAME=$nic_name
+export TP_SOCKET_IFNAME=$nic_name
+export HCCL_SOCKET_IFNAME=$nic_name
+export HCCL_ALGO=level0:fullmesh
 
 export OMP_PROC_BIND=false
 export OMP_NUM_THREADS=10
-export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True
-export HCCL_BUFFSIZE=1024
-export TASK_QUEUE_ENABLE=1
-export HCCL_OP_EXPANSION_MODE=CCU_SCHED
-export VLLM_PREFIX_CACHE_RETENTION_INTERVAL=4096
-
+export PYTORCH_NPU_ALLOC_CONF="expandable_segments:True"
+export VLLM_VERSION=0.30.0
+export ASCEND_RT_VISIBLE_DEVICES="$1"
 export ASCEND_LOCAL_COMM_RES='{"version":"1.3"}'
-export VLLM_USE_FASTOKENS=1
 
-vllm serve /mnt/share/weight/DeepSeek-V4-Flash-0731  \
+export VLLM_RPC_TIMEOUT=3600000
+export VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS=30000
+export HCCL_EXEC_TIMEOUT=2040
+export HCCL_CONNECT_TIMEOUT=1200
+export HCCL_BUFFSIZE=1024
+
+aicpu_headers=/usr/local/Ascend/cann-9.2.0/tools/hcc/aarch64-target-linux-gnu/include/c++/14.3.0
+export CPLUS_INCLUDE_PATH="$aicpu_headers:$aicpu_headers/aarch64-target-linux-gnu:$aicpu_headers/backward"
+export HCCL_OP_EXPANSION_MODE=CCU_SCHED
+export VLLM_USE_V2_MODEL_RUNNER=1
+export PYTHONHASHSEED=0
+export MMC_LOCAL_CONFIG_PATH="/mnt/share/l00848480/config-a136/mmc-local.conf"
+
+# === Prometheus multiprocess environment ===
+export PROMETHEUS_MULTIPROC_DIR=/dev/shm/vllm_metrics
+mkdir -p "$PROMETHEUS_MULTIPROC_DIR" || true
+printf '[Prometheus] script=%s pid=%s PROMETHEUS_MULTIPROC_DIR=%s\n' "${BASH_SOURCE[0]:-bash}" "$$" "$PROMETHEUS_MULTIPROC_DIR" >&2
+{
+export MS_SERVICE_METRIC_SHM_PREFIX="${MS_SERVICE_METRIC_SHM_PREFIX:-/aiclusterhub_ms_507141a8216abb1bcc49}"
+_aich_ms_plugins="${VLLM_PLUGINS-}"
+_aich_ms_failed=0
+_aich_ms_result=''
+if [ "${AICH_MS_HELPER_READY:-1}" = 1 ]; then
+    if _aich_ms_result=$(timeout --kill-after=1s 5s python3 /tmp/inference/08284105-70fe-4bb0-9cdc-942503e0d8a4/p0_0/mindstudio_runtime.py activate --command vllm --work-dir /tmp/inference/08284105-70fe-4bb0-9cdc-942503e0d8a4/p0_0 --enabled on); then
+        :
+    else
+        _aich_ms_failed=1
+        printf '[MindStudio][WARN] activation failed; trying one repair (limit 30s)\n' >&2
+        if _aich_ms_repair_result=$(timeout --kill-after=1s 30s python3 /tmp/inference/08284105-70fe-4bb0-9cdc-942503e0d8a4/p0_0/mindstudio_runtime.py repair --command vllm --work-dir /tmp/inference/08284105-70fe-4bb0-9cdc-942503e0d8a4/p0_0 --enabled on); then
+            _aich_ms_failed=0
+        else
+            case "$_aich_ms_repair_result" in
+                AICH_MS_PLUGINS=*) _aich_ms_result=$_aich_ms_repair_result ;;
+            esac
+        fi
+    fi
+else
+    _aich_ms_failed=1
+fi
+if [ "$_aich_ms_failed" = 1 ] || [ on = off ]; then
+    case "$_aich_ms_result" in
+        AICH_MS_PLUGINS=*)
+            _aich_ms_plugins="${_aich_ms_result#AICH_MS_PLUGINS=}"
+            export VLLM_PLUGINS="$_aich_ms_plugins" ;;
+    esac
+fi
+if [ "$_aich_ms_failed" = 1 ]; then
+    printf '[MindStudio][WARN] monitoring unavailable; continuing engine command\n' >&2
+fi
+} || printf '[MindStudio][WARN] optional setup failed; continuing engine command\n' >&2 || true
+vllm serve /mnt/share/weight/DeepSeek-V4.1-Flash-1017 \
+  --port $2 \
+  --data-parallel-address $5 \
+  --data-parallel-rpc-port $6 \
+  --data-parallel-rank $4 \
   --host 0.0.0.0 \
-  --port 9004 \
-  --data-parallel-size 4 \
-  --data-parallel-address $local_ip \
-  --data-parallel-rpc-port 12321 \
-  --tensor-parallel-size 1 \
-  --prefill-context-parallel-size 1 \
-  --served-model-name dsv \
-  --enable-expert-parallel \
-  --enable-prefix-caching \
-  --seed 1024 \
-  --api-server-count 4 \
-  --max-model-len 1048576 \
-  --max-num-batched-tokens 8192 \
-  --max-num-seqs 16 \
-  --no-disable-hybrid-kv-cache-manager \
-  --enable-prefix-caching \
-  --model-loader-extra-config '{"enable_multithread_load":true,"num_threads":128}' \
-  --speculative-config '{"num_speculative_tokens":5,"method":"dspark","enforce_eager":true}' \
-  --trust-remote-code \
-  --block-size 32 \
-  --kv-cache-dtype fp8 \
-  --attention_config.indexer_kv_dtype fp8 \
-  --tokenizer-mode deepseek_v4 \
-  --tool-call-parser deepseek_v4 \
-  --enable-auto-tool-choice \
-  --reasoning-parser deepseek_v4 \
+  --data-parallel-size $3 \
+  --tensor-parallel-size $7 \
+  --max_model_len 1048576 \
+  --max-num-batched-tokens 4096 \
+  --served-model-name dsv4_1 \
   --gpu-memory-utilization 0.9 \
+  --enable-expert-parallel \
+  --max-num-seqs 16 \
+  --block-size 128 \
+  --engram-config '{"cpu_offload":true,"dp_shared_memory":true}' \
+  --quantization deepseek_v4_fp8 \
+  --tokenizer-mode deepseek_v41 \
+  --tool-call-parser deepseek_v41 \
+  --enable-auto-tool-choice \
+  --reasoning-parser deepseek_v41 \
+  --enable-prefix-caching \
+  --trust-remote-code \
   --enforce-eager \
-  --profiler-config '{"profiler": "torch", "torch_profiler_dir": "/home/l00943162/profiling_p", "torch_profiler_with_stack": false}' \
-  --additional-config '{"enable_cpu_binding":true,"enable_fused_mc2":0, "multistream_overlap_shared_expert": true, "enable_shared_expert_dp":true}' \
-  --kv-transfer-config '{
-  "kv_connector": "MooncakeConnectorV2",
-  "kv_role": "kv_producer",
-  "kv_port": "30100",
+  --speculative-config '{"num_speculative_tokens": 5,"method": "dspark"}' \
+  --additional-config '{"multistream_engram_overlap":false, "enable_cpu_binding":true, "multistream_overlap_shared_expert":true, "multistream_dsv4_dsa_overlap":true}' \
+  --profiler-config '{"profiler": "torch", "torch_profiler_dir": "/home/yuanlinfeng/vllm_profiling_1011", "torch_profiler_with_stack": false}' \
+  --kv-transfer-config \
+'{
+  "kv_connector": "MultiConnector",
   "engine_id": "0",
+  "kv_role": "kv_producer",
+  "kv_load_failure_policy": "fail",
   "kv_connector_extra_config": {
-    "prefill": {
-      "dp_size": 4,
-      "tp_size": 1
-    },
-    "decode": {
-      "dp_size": 4,
-      "tp_size": 1
-    }
+    "connectors": [
+      {
+        "kv_connector": "MooncakeHybridConnector",
+        "kv_role": "kv_producer",
+        "kv_port": "37000",
+        "kv_connector_extra_config": {
+          "prefill": {"dp_size": 8, "tp_size": 1},
+          "decode":  {"dp_size": 8, "tp_size": 1}
+        }
+      },
+      {
+        "kv_connector": "AscendStoreConnector",
+        "kv_role": "kv_producer",
+        "kv_connector_extra_config": {
+          "backend": "memcache"
+        }
+      }
+    ]
   }
 }'
 
@@ -87,98 +136,137 @@ vllm serve /mnt/share/weight/DeepSeek-V4-Flash-0731  \
 
 
 
+KV_PORT=37000
+ENGINE_ID=$((100 + $4))
 
-
-
-
-
+# 清除代理环境变量
 unset ftp_proxy FTP_PROXY
 unset https_proxy HTTPS_PROXY
 unset http_proxy HTTP_PROXY
+source /root/.bashrc
+
+unset ftp_proxy
 unset https_proxy
 unset http_proxy
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/
-source ~/.bashrc
+unset HCCL_INTRA_ROCE_ENABLE
 
-nic_name="data0.3001"
-local_ip="172.27.13.176"
+local_ip="xxx"
+nic_name="xxx"
 
-export HCCL_IF_IP="172.27.13.176"
-export GLOO_SOCKET_IFNAME="data0.3001"
-export TP_SOCKET_IFNAME="data0.3001"
-export HCCL_SOCKET_IFNAME="data0.3001"
+export HCCL_IF_IP=$local_ip
+export GLOO_SOCKET_IFNAME=$nic_name
+export TP_SOCKET_IFNAME=$nic_name
+export HCCL_SOCKET_IFNAME=$nic_name
 
-export VLLM_USE_V2_MODEL_RUNNER=1
-export VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS=3000
-export HCCL_EXEC_TIMEOUT=204
-export HCCL_CONNECT_TIMEOUT=120
+export VLLM_RPC_TIMEOUT=3600000
+export VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS=30000
+export HCCL_EXEC_TIMEOUT=2040
+export HCCL_CONNECT_TIMEOUT=1200
+export HCCL_BUFFSIZE=1600
 
 export OMP_PROC_BIND=false
 export OMP_NUM_THREADS=10
-export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True,pinned_mem_register:True
-export HCCL_BUFFSIZE=1024
-export TASK_QUEUE_ENABLE=1
-
+export PYTORCH_NPU_ALLOC_CONF="expandable_segments:True"
+export VLLM_VERSION=0.30.0
+export ASCEND_RT_VISIBLE_DEVICES="$1"
 export ASCEND_LOCAL_COMM_RES='{"version":"1.3"}'
-export VLLM_USE_FASTOKENS=1
 
-vllm serve /mnt/share/weight/DeepSeek-V4-Flash-0731 \
-  --port 8001 \
-  --host $local_ip \
-  --data-parallel-size 4 \
-  --tensor-parallel-size 1 \
-  --prefill-context-parallel-size 1 \
-  --served-model-name dsv \
-  --enable-expert-parallel \
-  --seed 1024 \
+aicpu_headers=/usr/local/Ascend/cann-9.2.0/tools/hcc/aarch64-target-linux-gnu/include/c++/14.3.0
+export CPLUS_INCLUDE_PATH="$aicpu_headers:$aicpu_headers/aarch64-target-linux-gnu:$aicpu_headers/backward"
+export HCCL_OP_EXPANSION_MODE=CCU_SCHED
+export VLLM_USE_V2_MODEL_RUNNER=1
+export PYTHONHASHSEED=0
+export MMC_LOCAL_CONFIG_PATH="/mnt/share/l00848480/config-a136/mmc-local.conf"
+
+# === Prometheus multiprocess environment ===
+export PROMETHEUS_MULTIPROC_DIR=/dev/shm/vllm_metrics
+mkdir -p "$PROMETHEUS_MULTIPROC_DIR" || true
+printf '[Prometheus] script=%s pid=%s PROMETHEUS_MULTIPROC_DIR=%s\n' "${BASH_SOURCE[0]:-bash}" "$$" "$PROMETHEUS_MULTIPROC_DIR" >&2
+{
+export MS_SERVICE_METRIC_SHM_PREFIX="${MS_SERVICE_METRIC_SHM_PREFIX:-/aiclusterhub_ms_7d41b07ed2c6416e5471}"
+_aich_ms_plugins="${VLLM_PLUGINS-}"
+_aich_ms_failed=0
+_aich_ms_result=''
+if [ "${AICH_MS_HELPER_READY:-1}" = 1 ]; then
+    if _aich_ms_result=$(timeout --kill-after=1s 5s python3 /tmp/inference/08284105-70fe-4bb0-9cdc-942503e0d8a4/d0_0/mindstudio_runtime.py activate --command vllm --work-dir /tmp/inference/08284105-70fe-4bb0-9cdc-942503e0d8a4/d0_0 --enabled on); then
+        :
+    else
+        _aich_ms_failed=1
+        printf '[MindStudio][WARN] activation failed; trying one repair (limit 30s)\n' >&2
+        if _aich_ms_repair_result=$(timeout --kill-after=1s 30s python3 /tmp/inference/08284105-70fe-4bb0-9cdc-942503e0d8a4/d0_0/mindstudio_runtime.py repair --command vllm --work-dir /tmp/inference/08284105-70fe-4bb0-9cdc-942503e0d8a4/d0_0 --enabled on); then
+            _aich_ms_failed=0
+        else
+            case "$_aich_ms_repair_result" in
+                AICH_MS_PLUGINS=*) _aich_ms_result=$_aich_ms_repair_result ;;
+            esac
+        fi
+    fi
+else
+    _aich_ms_failed=1
+fi
+if [ "$_aich_ms_failed" = 1 ] || [ on = off ]; then
+    case "$_aich_ms_result" in
+        AICH_MS_PLUGINS=*)
+            _aich_ms_plugins="${_aich_ms_result#AICH_MS_PLUGINS=}"
+            export VLLM_PLUGINS="$_aich_ms_plugins" ;;
+    esac
+fi
+if [ "$_aich_ms_failed" = 1 ]; then
+    printf '[MindStudio][WARN] monitoring unavailable; continuing engine command\n' >&2
+fi
+} || printf '[MindStudio][WARN] optional setup failed; continuing engine command\n' >&2 || true
+vllm serve /mnt/share/weight/DeepSeek-V4.1-Flash-1017 \
+  --port $2 \
+  --data-parallel-address $5 \
+  --data-parallel-rpc-port $6 \
+  --data-parallel-rank $4 \
+  --host 0.0.0.0 \
+  --data-parallel-size "$3" \
+  --tensor-parallel-size "$7" \
   --max-model-len 1048576 \
   --max-num-batched-tokens 1024 \
-  --max-num-seqs 56 \
+  --served-model-name dsv4_1 \
+  --gpu-memory-utilization 0.92 \
+  --enable-expert-parallel \
   --async-scheduling \
-  --block-size 32 \
-  --kv-cache-dtype fp8 \
-  --attention_config.indexer_kv_dtype fp8 \
-  --enable-prefix-caching \
-  --no-disable-hybrid-kv-cache-manager \
-  --model-loader-extra-config '{"enable_multithread_load":true,"num_threads":128}' \
-  --trust-remote-code \
-  --tokenizer-mode deepseek_v4 \
-  --tool-call-parser deepseek_v4 \
+  --max-num-seqs 64 \
+  --block-size 128 \
+  --engram-config '{"cpu_offload":true,"dp_shared_memory":true}' \
+  --quantization deepseek_v4_fp8 \
+  --tokenizer-mode deepseek_v41 \
+  --tool-call-parser deepseek_v41 \
   --enable-auto-tool-choice \
-  --reasoning-parser deepseek_v4 \
-  --gpu-memory-utilization 0.95 \
-  --speculative-config '{"num_speculative_tokens":5,"method":"dspark","enforce_eager":false, "rejection_sample_method": "synthetic","synthetic_acceptance_length": 4.75}' \
+  --reasoning-parser deepseek_v41 \
+  --enable-prefix-caching \
+  --trust-remote-code \
   --compilation-config '{"cudagraph_mode":"FULL_DECODE_ONLY"}' \
-  --profiler-config '{"profiler": "torch", "torch_profiler_dir": "/home/l00943162/profiling_d", "torch_profiler_with_stack": false}' \
-  --kv-transfer-config '{
-  "kv_connector": "MooncakeConnectorV2",
-  "kv_role": "kv_consumer",
-  "kv_port": "30002",
+  --speculative-config '{"num_speculative_tokens": 5,"method": "dspark","enforce_eager":false}' \
+  --additional-config '{"multistream_engram_overlap":true, "enable_cpu_binding":true, "multistream_overlap_shared_expert":true, "multistream_dsv4_dsa_overlap":true, "enable_fused_mc2":0, "enable_force_eplb":false, "combine_quant_mode":4, "scheduler_config":{"recompute_scheduler_enable":true}}' \
+  --profiler-config '{"profiler":"torch","torch_profiler_dir":"/home/yuanlinfeng/vllm_profiling_1011","torch_profiler_with_stack":false}' \
+  --kv-transfer-config \
+'{
+  "kv_connector": "MultiConnector",
   "engine_id": "1",
+  "kv_role": "kv_consumer",
+  "kv_load_failure_policy": "fail",
   "kv_connector_extra_config": {
-    "prefill": {
-      "dp_size": 4,
-      "tp_size": 1
-    },
-    "decode": {
-      "dp_size": 4,
-      "tp_size": 1
-    }
+    "connectors": [
+      {
+        "kv_connector": "MooncakeHybridConnector",
+        "kv_role": "kv_consumer",
+        "kv_port": "37010",
+        "kv_connector_extra_config": {
+          "prefill": {"dp_size": 8, "tp_size": 1},
+          "decode":  {"dp_size": 8, "tp_size": 1}
+        }
+      },
+      {
+        "kv_connector": "AscendStoreConnector",
+        "kv_role": "kv_consumer",
+        "kv_connector_extra_config": {
+          "backend": "memcache"
+        }
+      }
+    ]
   }
-}' \
-  --additional-config '{
-    "ascend_compilation_config":{
-      "enable_npugraph_ex":true,
-      "enable_static_kernel":false
-    },
-    "enable_cpu_binding":true,
-    "multistream_overlap_shared_expert":true,
-    "recompute_scheduler_enable":true, 
-    "enable_shared_expert_dp":true,
-    "combine_quant_mode":4
-  }'
-
-
-
-
-
+}'
