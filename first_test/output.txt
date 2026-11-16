@@ -1,38 +1,210 @@
-## Meta service start-up url
-## K8s meta service cluster master-standby high availability scenario: ClusterIP address
-## Non-HA scenario: keep consistent with the same name configuration in mmc-meta.conf
-ock.mmc.meta_service_url = tcp://141.61.133.136:5001
-
-## Config store url, it will automatically modified to PodIP at Pod startup in HA scenario
-## Keep consistent with the same name configuration in mmc-meta.conf
-ock.mmc.local_service.config_store_url = tcp://141.61.133.136:6001
-
-## Log level: debug, info, warn, error
-ock.mmc.log_level = info
-
-## The maximum supported rank count; once ranks are connected, no further modifications are allowed — a meta restart is required
-ock.mmc.local_service.world_size = 256
-
-## Data transfer protocol options:
-#   'device_rdma': RDMA over device, direct data transfer between NPUs, optimized for cluster communication
-#   'device_urma': URMA over device, direct data transfer between NPUs, optimized for cluster communication
-#   'device_uboe': UBoE over device, direct data transfer between NPUs, optimized for cluster communication
-#   'device_sdma': SDMA over device, efficient data transfer using device DMA engine
-#   'host_shm': Shared memory over host, inter-process communication within the same node
-#   'host_urma': RDMA over host UB, user-space RDMA for high-speed data transfer
-#   'host_rdma': RDMA over host, high-speed cross-node data transfer with low latency and high bandwidth
-#   'host_tcp': TCP over host, general network transfer with broad compatibility
-## Dependencies: host_rdma, host_urma and host_tcp require hcom library; host_shm has no external dependencies
-ock.mmc.local_service.protocol = device_urma
-
-## DRAM space usage, configuration type supports 134217728, 2048KB/2048K, 200MB/200mb/200m, 2.5GB or 1TB, case-insensitive, the maximum value is 1TB
-## The system automatically calculates and aligns upwards to 2MB (host_rdma, host_tcp or host_shm) or 1GB (device_sdma, device_rdma, device_urma or device_uboe)
-## In A3 environment all protocol should be aligned to 1GB, otherwise mmc init will fail
-## After alignment, the HBM size and DRAM size cannot both be 0 at the same time
-ock.mmc.local_service.dram.size = 64GB
-ock.mmc.local_service.max.dram.size = 1024GB
-
-## Enable SSD storage via UBS IO (default: false)
-#ock.mmc.local_service.storage.enabled = false
-
-## For more configuration options and advanced parameters, please refer to the official documentation: [MemCache Configuration Guide](https://gitcode.com/Ascend/memcache/blob/master/doc/memcache_config.md)
+{
+  "schema": "host_cpu_bench/v1",
+  "label": "xeon",
+  "host": "ubuntu1",
+  "machine": "x86_64",
+  "idle_check": {"cpu": 0, "window_s": 1.0, "busy_pct": 0.000, "threshold_pct": 5.000, "warn": false},
+  "device_check": {"ok": true, "backend": "xpu", "device_id": 0, "detail": "xpu: 8 GPU(s) from xpu-smi; xpu dev0 util=0.0% mem=0/98304MB procs=0 idle; xpu dev1 util=0.0% mem=0/98304MB procs=0 idle; xpu dev2 util=0.0% mem=0/98304MB procs=0 idle; xpu dev3 util=0.0% mem=0/98304MB procs=0 idle; xpu dev4 util=0.0% mem=0/98304MB procs=0 idle; xpu dev5 util=0.0% mem=0/98304MB procs=0 idle; xpu dev6 util=0.0% mem=0/98304MB procs=0 idle; xpu dev7 util=0.0% mem=0/98304MB procs=0 idle | claimed xpu id=0"},
+  "runs": [
+    {
+      "scene": "preprocess",
+      "kind": "cpu",
+      "backend": "xpu",
+      "skipped": false,
+      "bind_cpu": 0,
+      "n": 8, "c": 64, "h": 128, "w": 128,
+      "iters": 20,
+      "seconds": 0.977857,
+      "rate_mbs": 686.285,
+      "units_s": 163.623,
+      "unit_name": "samples",
+      "ipc": 0.836,
+      "miss_rate": 0.0009,
+      "mhz": 3076.0,
+      "cpu_util": 0.997,
+      "pmu": "ok",
+      "cycles": 2999076562,
+      "instructions": 2506502381,
+      "misses": 279127,
+      "refs": 304124763,
+      "bytes_in": 671088640,
+      "units_done": 160,
+      "checksum": 471130
+    },
+    {
+      "scene": "tokenize",
+      "kind": "cpu",
+      "backend": "xpu",
+      "skipped": false,
+      "bind_cpu": 0,
+      "n": 8, "c": 64, "h": 128, "w": 128,
+      "iters": 20,
+      "seconds": 0.010307,
+      "rate_mbs": 254.332,
+      "units_s": 254332334.932,
+      "unit_name": "tokens",
+      "ipc": 4.830,
+      "miss_rate": 0.1162,
+      "mhz": 3107.8,
+      "cpu_util": 0.996,
+      "pmu": "ok",
+      "cycles": 31917638,
+      "instructions": 154158220,
+      "misses": 151,
+      "refs": 1300,
+      "bytes_in": 2621440,
+      "units_done": 2621440,
+      "checksum": 2649820
+    },
+    {
+      "scene": "tokenizer_init",
+      "kind": "startup",
+      "backend": "xpu",
+      "skipped": false,
+      "bind_cpu": 0,
+      "n": 8, "c": 64, "h": 128, "w": 128,
+      "iters": 20,
+      "seconds": 0.050464,
+      "rate_mbs": 311.681,
+      "units_s": 396.322,
+      "unit_name": "inits",
+      "ipc": 1.634,
+      "miss_rate": 0.0003,
+      "mhz": 3106.3,
+      "cpu_util": 0.997,
+      "pmu": "ok",
+      "cycles": 156359401,
+      "instructions": 255499025,
+      "misses": 684,
+      "refs": 2003868,
+      "bytes_in": 15728640,
+      "units_done": 20,
+      "checksum": 2804215053187861
+    },
+    {
+      "scene": "dataloader",
+      "kind": "cpu",
+      "backend": "xpu",
+      "skipped": false,
+      "bind_cpu": 0,
+      "n": 8, "c": 64, "h": 128, "w": 128,
+      "iters": 20,
+      "seconds": 0.017461,
+      "rate_mbs": 19070.810,
+      "units_s": 9163.125,
+      "unit_name": "batches",
+      "ipc": 4.745,
+      "miss_rate": 0.0005,
+      "mhz": 3101.5,
+      "cpu_util": 0.998,
+      "pmu": "ok",
+      "cycles": 54038199,
+      "instructions": 256395199,
+      "misses": 178,
+      "refs": 379232,
+      "bytes_in": 333000980,
+      "units_done": 160,
+      "checksum": 344545810615
+    },
+    {
+      "scene": "h2d",
+      "kind": "copy",
+      "backend": "xpu",
+      "skipped": false,
+      "bind_cpu": 0,
+      "n": 8, "c": 64, "h": 128, "w": 128,
+      "iters": 20,
+      "seconds": 0.104991,
+      "rate_mbs": 6391.883,
+      "units_s": 190.493,
+      "unit_name": "copies",
+      "ipc": 0.885,
+      "miss_rate": 0.0019,
+      "mhz": 3111.1,
+      "cpu_util": 0.996,
+      "pmu": "ok",
+      "cycles": 325314682,
+      "instructions": 288058841,
+      "misses": 22339,
+      "refs": 11638701,
+      "bytes_in": 671088640,
+      "units_done": 20,
+      "checksum": 380
+    },
+    {
+      "scene": "d2h",
+      "kind": "copy",
+      "backend": "xpu",
+      "skipped": false,
+      "bind_cpu": 0,
+      "n": 8, "c": 64, "h": 128, "w": 128,
+      "iters": 20,
+      "seconds": 0.092127,
+      "rate_mbs": 7284.425,
+      "units_s": 217.093,
+      "unit_name": "copies",
+      "ipc": 1.000,
+      "miss_rate": 0.0457,
+      "mhz": 3106.7,
+      "cpu_util": 0.997,
+      "pmu": "ok",
+      "cycles": 285469383,
+      "instructions": 285531584,
+      "misses": 549331,
+      "refs": 12028381,
+      "bytes_in": 671088640,
+      "units_done": 20,
+      "checksum": 4970
+    },
+    {
+      "scene": "launch",
+      "kind": "launch",
+      "backend": "xpu",
+      "skipped": false,
+      "bind_cpu": 0,
+      "n": 8, "c": 64, "h": 128, "w": 128,
+      "iters": 20,
+      "seconds": 0.030537,
+      "rate_mbs": 0.503,
+      "units_s": 41916.070,
+      "unit_name": "launches",
+      "ipc": 0.968,
+      "miss_rate": 0.3623,
+      "mhz": 3106.8,
+      "cpu_util": 0.998,
+      "pmu": "ok",
+      "cycles": 94639706,
+      "instructions": 91579374,
+      "misses": 1962,
+      "refs": 5415,
+      "bytes_in": 15360,
+      "units_done": 1280,
+      "checksum": 13630
+    },
+    {
+      "scene": "pipeline",
+      "kind": "pipeline",
+      "backend": "xpu",
+      "skipped": false,
+      "bind_cpu": 0,
+      "n": 8, "c": 64, "h": 128, "w": 128,
+      "iters": 20,
+      "seconds": 1.036775,
+      "rate_mbs": 647.285,
+      "units_s": 154.325,
+      "unit_name": "samples",
+      "ipc": 0.818,
+      "miss_rate": 0.0001,
+      "mhz": 3107.0,
+      "cpu_util": 0.996,
+      "pmu": "ok",
+      "cycles": 3209940133,
+      "instructions": 2624340561,
+      "misses": 18580,
+      "refs": 315064083,
+      "bytes_in": 671088640,
+      "units_done": 160,
+      "checksum": 471130
+    }
+  ]
+}
