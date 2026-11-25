@@ -1,0 +1,138 @@
+root@ubuntu1:/home/sq/cpu-skill-main/host_cpu_bench# ./run.sh run --scene speccpu --spec-root /home/sq/cpu2017
+cmd: python speccpu.py --suite intspeed --size test --iters 1 --copies 1 --out /tmp/host-cpu-bench-spec.DdzDdm.json --root /home/sq/cpu2017
+[speccpu] found SPEC CPU 2017 at /home/sq/cpu2017
+[speccpu] runcpu suite=intspeed size=test iters=1 copies=1
+[speccpu] config /home/sq/cpu2017/config/host_cpu_bench.cfg (from Example-gcc-linux-x86.cfg, gcc_dir=/usr)
+[speccpu] + source /home/sq/cpu2017/shrc && runcpu --config=host_cpu_bench.cfg --action=run --tune=base --size=test --iterations=1 --noreportable --output_format=text,csv intspeed
+
+e"
+C: LDOUT="-o options"
+specmake --output-sync -j208 compiler-version
+ CC_VERSION_OPTION:
+Using built-in specs.
+COLLECT_GCC=/usr/bin/gcc
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper
+OFFLOAD_TARGET_NAMES=nvptx-none:amdgcn-amdhsa
+OFFLOAD_TARGET_DEFAULT=1
+Target: x86_64-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Ubuntu 11.4.0-1ubuntu1~22.04' --with-bugurl=file:///usr/share/doc/gcc-11/README.Bugs --enable-languages=c,ada,c++,go,brig,d,fortran,objc,obj-c++,m2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-11 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-bootstrap --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --enable-libphobos-checking=release --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --enable-cet --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-nvptx/usr,am
+dgcn-amdhsa=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-gcn/usr --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu --with-build-config=bootstrap-lto-lean --enable-link-serialization=2
+Thread model: posix
+Supported LTO compression algorithms: zlib zstd
+gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04)
+  Building 998.specrand_is base mytest-m64: (build_base_mytest-m64.0000) [2026-11-25 07:45:08]
+specmake --output-sync -j208 clean
+rm -rf *.o  rand.11.out
+find . \( -name \*.o -o -name '*.fppized.f*' -o -name '*.i' -o -name '*.mod' \) -print | xargs rm -rf
+rm -rf specrand_is
+rm -rf specrand_is.exe
+rm -rf core
+specmake --output-sync -j208 build
+/usr/bin/gcc     -std=c99   -m64 -c -o main.o -DSPEC -DNDEBUG -Ispecrand-common  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  main.c
+/usr/bin/gcc     -std=c99   -m64 -c -o specrand-common/specrand.o -DSPEC -DNDEBUG -Ispecrand-common  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  specrand-common/specrand.c
+/usr/bin/gcc     -std=c99   -m64      -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize        -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline main.o specrand-common/specrand.o                      -o specrand_is
+specmake --output-sync -j208 options
+COMP: "/usr/bin/gcc     -std=c99   -m64 -c -o options.o -DSPEC -DNDEBUG -Ispecrand-common  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  <source>"
+C: CC="/usr/bin/gcc     -std=c99   -m64"
+C: COBJOPT="-c -o options"
+P: CPUFLAGS="-DSPEC -DNDEBUG"
+P: BENCH_FLAGS="-Ispecrand-common"
+P: BENCH_CFLAGS=""
+O: OPTIMIZE="-g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize"
+O: COPTIMIZE=""
+P: PORTABILITY=""
+P: CPORTABILITY=""
+O: EXTRA_CFLAGS=""
+O: EXTRA_OPTIMIZE="-fopenmp -DSPEC_OPENMP"
+O: EXTRA_COPTIMIZE="-fno-strict-aliasing -fgnu89-inline"
+P: EXTRA_PORTABILITY="-DSPEC_LP64"
+P: EXTRA_CPORTABILITY=""
+LINK: "/usr/bin/gcc     -std=c99   -m64      -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize        -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline <objects>            -o options  "
+C: LD="/usr/bin/gcc     -std=c99   -m64"
+O: OPTIMIZE="-g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize"
+O: EXTRA_OPTIMIZE="-fopenmp -DSPEC_OPENMP"
+O: EXTRA_COPTIMIZE="-fno-strict-aliasing -fgnu89-inline"
+C: LDOUT="-o options"
+specmake --output-sync -j208 compiler-version
+ CC_VERSION_OPTION:
+Using built-in specs.
+COLLECT_GCC=/usr/bin/gcc
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper
+OFFLOAD_TARGET_NAMES=nvptx-none:amdgcn-amdhsa
+OFFLOAD_TARGET_DEFAULT=1
+Target: x86_64-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Ubuntu 11.4.0-1ubuntu1~22.04' --with-bugurl=file:///usr/share/doc/gcc-11/README.Bugs --enable-languages=c,ada,c++,go,brig,d,fortran,objc,obj-c++,m2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-11 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-bootstrap --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --enable-libphobos-checking=release --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --enable-cet --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-nvptx/usr,am
+dgcn-amdhsa=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-gcn/usr --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu --with-build-config=bootstrap-lto-lean --enable-link-serialization=2
+Thread model: posix
+Supported LTO compression algorithms: zlib zstd
+gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04)
+
+Build successes for intspeed: 600.perlbench_s(base), 602.gcc_s(base), 605.mcf_s(base), 620.omnetpp_s(base), 623.xalancbmk_s(base), 631.deepsjeng_s(base), 641.leela_s(base), 648.exchange2_s(base), 657.xz_s(base), 998.specrand_is(base)
+Build errors for intspeed: 625.x264_s(base; CE)
+
+Setting Up Run Directories
+  Setting up 600.perlbench_s test base mytest-m64: run_base_test_mytest-m64.0000
+  Setting up 602.gcc_s test base mytest-m64: run_base_test_mytest-m64.0000
+  Setting up 605.mcf_s test base mytest-m64: run_base_test_mytest-m64.0000
+  Setting up 620.omnetpp_s test base mytest-m64: run_base_test_mytest-m64.0000
+  Setting up 623.xalancbmk_s test base mytest-m64: run_base_test_mytest-m64.0000
+  Setting up 631.deepsjeng_s test base mytest-m64: run_base_test_mytest-m64.0000
+  Setting up 641.leela_s test base mytest-m64: run_base_test_mytest-m64.0000
+  Setting up 648.exchange2_s test base mytest-m64: run_base_test_mytest-m64.0000
+  Setting up 657.xz_s test base mytest-m64: run_base_test_mytest-m64.0000
+  Setting up 998.specrand_is test base mytest-m64: run_base_test_mytest-m64.0000
+Running Benchmarks
+  Running 600.perlbench_s test base mytest-m64 threads:4 [2026-11-25 07:45:12]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/600.perlbench_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/600.perlbench_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 602.gcc_s test base mytest-m64 threads:4 [2026-11-25 07:45:37]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/602.gcc_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/602.gcc_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 605.mcf_s test base mytest-m64 threads:4 [2026-11-25 07:45:38]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/605.mcf_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/605.mcf_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 620.omnetpp_s test base mytest-m64 threads:4 [2026-11-25 07:45:47]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/620.omnetpp_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/620.omnetpp_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 623.xalancbmk_s test base mytest-m64 threads:4 [2026-11-25 07:45:52]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/623.xalancbmk_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/623.xalancbmk_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 631.deepsjeng_s test base mytest-m64 threads:4 [2026-11-25 07:45:53]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/631.deepsjeng_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/631.deepsjeng_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 641.leela_s test base mytest-m64 threads:4 [2026-11-25 07:46:02]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/641.leela_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/641.leela_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 648.exchange2_s test base mytest-m64 threads:4 [2026-11-25 07:46:07]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/648.exchange2_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/648.exchange2_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 657.xz_s test base mytest-m64 threads:4 [2026-11-25 07:46:16]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/657.xz_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/657.xz_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 998.specrand_is test base mytest-m64 threads:4 [2026-11-25 07:46:26]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/998.specrand_is/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/998.specrand_is/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+Success: 1x600.perlbench_s 1x602.gcc_s 1x605.mcf_s 1x620.omnetpp_s 1x623.xalancbmk_s 1x631.deepsjeng_s 1x641.leela_s 1x648.exchange2_s 1x657.xz_s 1x998.specrand_is
+Error: 1x625.x264_s
+Producing Raw Reports
+ label: mytest-m64
+  workload: test
+   metric: SPECspeed2017_int_base
+    format: raw -> /home/sq/cpu2017/result/CPU2017.001.intspeed.test.rsf
+Parsing flags for 600.perlbench_s base: done
+Parsing flags for 602.gcc_s base: done
+Parsing flags for 605.mcf_s base: done
+Parsing flags for 620.omnetpp_s base: done
+Parsing flags for 623.xalancbmk_s base: done
+Parsing flags for 631.deepsjeng_s base: done
+Parsing flags for 641.leela_s base: done
+Parsing flags for 648.exchange2_s base: done
+Parsing flags for 657.xz_s base: done
+Doing flag reduction: done
+    format: CSV -> /home/sq/cpu2017/result/CPU2017.001.intspeed.test.csv
+    format: Text -> /home/sq/cpu2017/result/CPU2017.001.intspeed.test.txt
+The log for this run is in /home/sq/cpu2017/result/CPU2017.001.log
+
+runcpu finished at 2026-11-25 07:46:31; 149 total seconds elapsed
+[speccpu] wrote /tmp/host-cpu-bench-spec.DdzDdm.json
+result scene=speccpu kind=spec step=1 skipped=1 spec_score=0.0 spec_metric=SPECspeed2017_int_base seconds=149.602 size=test suite=intspeed
