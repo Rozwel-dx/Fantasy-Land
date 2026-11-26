@@ -1,18 +1,119 @@
-root@master-node:/home/s30027115/cpu-skill-main/host_cpu_bench# ./run.sh run --scene speccpu --spec-root /home/s30027115/cpu2017/
-cmd: python speccpu.py --suite intspeed --size test --iters 1 --copies 1 --out /tmp/host-cpu-bench-spec.L2itid.json --root /home/s30027115/cpu2017/
-[speccpu] found SPEC CPU 2017 at /home/s30027115/cpu2017
-[speccpu] runcpu suite=intspeed size=test iters=1 copies=1
-[speccpu] config /home/s30027115/cpu2017/config/host_cpu_bench.cfg (from Example-gcc-linux-aarch64.cfg, gcc_dir=/usr)
-[speccpu] + source /home/s30027115/cpu2017/shrc && runcpu --config=host_cpu_bench.cfg --action=run --tune=base --size=test --iterations=1 --noreportable --output_format=text,csv intspeed
+root@ubuntu1:/home/sq/cpu-skill-main/host_cpu_bench# runcpu \
+  --action=build \
+  --tune=base \
+  --size=test \
+  --config=host_cpu_bench.cfg \
+  625.x264_s
+SPEC CPU(r) 2017 Benchmark Suites
+Copyright 1995-2017 Standard Performance Evaluation Corporation (SPEC)
 
-specmake --output-sync -j192 options
-COMP: "/usr/bin/gcc     -std=c99   -mabi=lp64 -c -o options.o -DSPEC -DNDEBUG -DSPEC_AUTO_BYTEORDER=0x12345678 -DHAVE_CONFIG_H=1 -DSPEC_MEM_IO -DSPEC_XZ -I. -Ispec_mem_io -Isha-2 -Icommon -Iliblzma/api -Iliblzma/lzma -Iliblzma/common -Iliblzma/check -Iliblzma/simple -Iliblzma/delta -Iliblzma/lz -Iliblzma/rangecoder  -O3           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  <source>"
-C: CC="/usr/bin/gcc     -std=c99   -mabi=lp64"
+runcpu v5825
+Using 'linux-x86_64' tools
+Reading file manifests... read 32271 entries from 2 files in 0.08s (394024 files/s)
+Loading runcpu modules.................
+Locating benchmarks...found 47 benchmarks in 53 benchsets.
+Reading config file '/home/sq/cpu2017/config/host_cpu_bench.cfg'
+1 configuration selected:
+
+Action   Benchmarks
+------   ----------------------------------------------------------------------
+build    625.x264_s
+-------------------------------------------------------------------------------
+
+Setting up environment for running 625.x264_s...
+Starting runcpu for 625.x264_s...
+Running "specperl /home/sq/cpu2017/bin/sysinfo" to gather system information.
+sysinfo: r5974 of 2018-05-19 (9bcde8f2999c33d61f64985e45859ea9)
+sysinfo: Getting system information for Linux...
+sysinfo: ...getting CPU info
+sysinfo: ...getting info from numactl
+sysinfo: ...getting memory info
+sysinfo: ...getting OS info
+sysinfo: ...getting CPU vulnerability status from the kernel
+sysinfo: ...getting disk info
+sysinfo: ...trying to get DIMM info from dmidecode
+Retrieving flags file (/home/sq/cpu2017/config/flags/gcc.xml)...
+Benchmarks selected: 625.x264_s
+Compiling Binaries
+  Building 625.x264_s base mytest-m64: (build_base_mytest-m64.0000) [2026-11-26 06:42:24]
+specmake --output-sync -j208 clean TARGET=imagevalidate_625
+specmake --output-sync -j208 clean TARGET=ldecod_s
+specmake --output-sync -j208 clean TARGET=x264_s
+specmake --output-sync -j208 build TARGET=imagevalidate_625
+/usr/bin/gcc     -std=c99   -m64 -c -o image_validator/ImageValidator.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  image_validator/ImageValidator.c
+image_validator/ImageValidator.c: In function 'read_tga_file':
+image_validator/ImageValidator.c:662:9: warning: ignoring return value of 'fread' declared with attribute 'warn_unused_result' [-Wunused-result]
+  662 |         fread(tmprawdata, 2, 1, stream);             \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+image_validator/ImageValidator.c:715:5: note: in expansion of macro 'read_le16'
+  715 |     read_le16(fin, tga->colormaporigin);
+      |     ^~~~~~~~~
+image_validator/ImageValidator.c:662:9: warning: ignoring return value of 'fread' declared with attribute 'warn_unused_result' [-Wunused-result]
+  662 |         fread(tmprawdata, 2, 1, stream);             \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+image_validator/ImageValidator.c:716:5: note: in expansion of macro 'read_le16'
+  716 |     read_le16(fin, tga->colormaplength);
+      |     ^~~~~~~~~
+image_validator/ImageValidator.c:662:9: warning: ignoring return value of 'fread' declared with attribute 'warn_unused_result' [-Wunused-result]
+  662 |         fread(tmprawdata, 2, 1, stream);             \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+image_validator/ImageValidator.c:718:5: note: in expansion of macro 'read_le16'
+  718 |     read_le16(fin, tga->x_origin);
+      |     ^~~~~~~~~
+image_validator/ImageValidator.c:662:9: warning: ignoring return value of 'fread' declared with attribute 'warn_unused_result' [-Wunused-result]
+  662 |         fread(tmprawdata, 2, 1, stream);             \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+image_validator/ImageValidator.c:719:5: note: in expansion of macro 'read_le16'
+  719 |     read_le16(fin, tga->y_origin);
+      |     ^~~~~~~~~
+image_validator/ImageValidator.c:662:9: warning: ignoring return value of 'fread' declared with attribute 'warn_unused_result' [-Wunused-result]
+  662 |         fread(tmprawdata, 2, 1, stream);             \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+image_validator/ImageValidator.c:720:5: note: in expansion of macro 'read_le16'
+  720 |     read_le16(fin, tga->width);
+      |     ^~~~~~~~~
+image_validator/ImageValidator.c:662:9: warning: ignoring return value of 'fread' declared with attribute 'warn_unused_result' [-Wunused-result]
+  662 |         fread(tmprawdata, 2, 1, stream);             \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+image_validator/ImageValidator.c:721:5: note: in expansion of macro 'read_le16'
+  721 |     read_le16(fin, tga->height);
+      |     ^~~~~~~~~
+image_validator/ImageValidator.c:728:9: warning: ignoring return value of 'fread' declared with attribute 'warn_unused_result' [-Wunused-result]
+  728 |         fread(tga->image_id, tga->idlength, 1, fin);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+image_validator/ImageValidator.c:662:9: warning: ignoring return value of 'fread' declared with attribute 'warn_unused_result' [-Wunused-result]
+  662 |         fread(tmprawdata, 2, 1, stream);             \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+image_validator/ImageValidator.c:672:9: note: in expansion of macro 'read_le16'
+  672 |         read_le16(stream, tmpmap);            \
+      |         ^~~~~~~~~
+image_validator/ImageValidator.c:684:13: note: in expansion of macro 'read_16bit_pixel'
+  684 |             read_16bit_pixel(stream, dest);         \
+      |             ^~~~~~~~~~~~~~~~
+image_validator/ImageValidator.c:736:13: note: in expansion of macro 'read_pixel'
+  736 |             read_pixel(fin, tga->colormapdata[i], tga->colormapdepth);
+      |             ^~~~~~~~~~
+image_validator/ImageValidator.c:662:9: warning: ignoring return value of 'fread' declared with attribute 'warn_unused_result' [-Wunused-result]
+  662 |         fread(tmprawdata, 2, 1, stream);             \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+image_validator/ImageValidator.c:672:9: note: in expansion of macro 'read_le16'
+  672 |         read_le16(stream, tmpmap);            \
+      |         ^~~~~~~~~
+image_validator/ImageValidator.c:684:13: note: in expansion of macro 'read_16bit_pixel'
+  684 |             read_16bit_pixel(stream, dest);         \
+      |             ^~~~~~~~~~~~~~~~
+image_validator/ImageValidator.c:747:13: note: in expansion of macro 'read_pixel'
+  747 |             read_pixel(fin, tga->imagedata[h][w], tga->bitsperpixel);
+      |             ^~~~~~~~~~
+/usr/bin/gcc     -std=c99   -m64      -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize        -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline image_validator/ImageValidator.o             -lm         -o imagevalidate_625
+specmake --output-sync -j208 options TARGET=imagevalidate_625
+COMP: "/usr/bin/gcc     -std=c99   -m64 -c -o options.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  <source>"
+C: CC="/usr/bin/gcc     -std=c99   -m64"
 C: COBJOPT="-c -o options"
 P: CPUFLAGS="-DSPEC -DNDEBUG"
-P: BENCH_FLAGS="-DSPEC_AUTO_BYTEORDER=0x12345678 -DHAVE_CONFIG_H=1 -DSPEC_MEM_IO -DSPEC_XZ -I. -Ispec_mem_io -Isha-2 -Icommon -Iliblzma/api -Iliblzma/lzma -Iliblzma/common -Iliblzma/check -Iliblzma/simple -Iliblzma/delta -Iliblzma/lz -Iliblzma/rangecoder"
+P: BENCH_FLAGS="-Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678"
 P: BENCH_CFLAGS=""
-O: OPTIMIZE="-O3"
+O: OPTIMIZE="-g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize"
 O: COPTIMIZE=""
 P: PORTABILITY=""
 P: CPORTABILITY=""
@@ -21,129 +122,156 @@ O: EXTRA_OPTIMIZE="-fopenmp -DSPEC_OPENMP"
 O: EXTRA_COPTIMIZE="-fno-strict-aliasing -fgnu89-inline"
 P: EXTRA_PORTABILITY="-DSPEC_LP64"
 P: EXTRA_CPORTABILITY=""
-LINK: "/usr/bin/gcc     -std=c99   -mabi=lp64      -O3        -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline <objects>            -o options  "
-C: LD="/usr/bin/gcc     -std=c99   -mabi=lp64"
-O: OPTIMIZE="-O3"
+LINK: "/usr/bin/gcc     -std=c99   -m64      -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize        -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline <objects>   -lm         -o options  "
+C: LD="/usr/bin/gcc     -std=c99   -m64"
+O: OPTIMIZE="-g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize"
 O: EXTRA_OPTIMIZE="-fopenmp -DSPEC_OPENMP"
 O: EXTRA_COPTIMIZE="-fno-strict-aliasing -fgnu89-inline"
+C: MATH_LIBS="-lm"
 C: LDOUT="-o options"
-specmake --output-sync -j192 compiler-version
+specmake --output-sync -j208 compiler-version TARGET=imagevalidate_625
  CC_VERSION_OPTION:
 Using built-in specs.
 COLLECT_GCC=/usr/bin/gcc
-COLLECT_LTO_WRAPPER=/usr/lib/gcc/aarch64-linux-gnu/11/lto-wrapper
-Target: aarch64-linux-gnu
-Configured with: ../src/configure -v --with-pkgversion='Ubuntu 11.4.0-1ubuntu1~22.04.3' --with-bugurl=file:///usr/share/doc/gcc-11/README.Bugs --enable-languages=c,ada,c++,go,d,fortran,objc,obj-c++,m2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-11 --program-prefix=aarch64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-bootstrap --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-libquadmath --disable-libquadmath-support --enable-plugin --enable-default-pie --with-system-zlib --enable-libphobos-checking=release --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --enable-fix-cortex-a53-843419 --disable-werror --enable-checking=release --build=aarch64-linux-gnu --host=aarch64-linux-gnu --target=aarch64-linux-gnu --with-build-config=bootstrap-lto-lean --enable-link-
-serialization=4
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/11/lto-wrapper
+OFFLOAD_TARGET_NAMES=nvptx-none:amdgcn-amdhsa
+OFFLOAD_TARGET_DEFAULT=1
+Target: x86_64-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Ubuntu 11.4.0-1ubuntu1~22.04' --with-bugurl=file:///usr/share/doc/gcc-11/README.Bugs --enable-languages=c,ada,c++,go,brig,d,fortran,objc,obj-c++,m2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-11 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-bootstrap --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --enable-libphobos-checking=release --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --enable-cet --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-nvptx/usr,am
+dgcn-amdhsa=/build/gcc-11-XeT9lY/gcc-11-11.4.0/debian/tmp-gcn/usr --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu --with-build-config=bootstrap-lto-lean --enable-link-serialization=2
 Thread model: posix
 Supported LTO compression algorithms: zlib zstd
-gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04.3)
-  Building 998.specrand_is base mytest-64: (build_base_mytest-64.0000) [2026-11-25 06:48:20]
-specmake --output-sync -j192 clean
-rm -rf *.o  rand.11.out
-find . \( -name \*.o -o -name '*.fppized.f*' -o -name '*.i' -o -name '*.mod' \) -print | xargs rm -rf
-rm -rf specrand_is
-rm -rf specrand_is.exe
-rm -rf core
-specmake --output-sync -j192 build
-/usr/bin/gcc     -std=c99   -mabi=lp64 -c -o main.o -DSPEC -DNDEBUG -Ispecrand-common  -O3           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  main.c
-/usr/bin/gcc     -std=c99   -mabi=lp64 -c -o specrand-common/specrand.o -DSPEC -DNDEBUG -Ispecrand-common  -O3           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  specrand-common/specrand.c
-/usr/bin/gcc     -std=c99   -mabi=lp64      -O3        -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline main.o specrand-common/specrand.o                      -o specrand_is
-specmake --output-sync -j192 options
-COMP: "/usr/bin/gcc     -std=c99   -mabi=lp64 -c -o options.o -DSPEC -DNDEBUG -Ispecrand-common  -O3           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  <source>"
-C: CC="/usr/bin/gcc     -std=c99   -mabi=lp64"
-C: COBJOPT="-c -o options"
-P: CPUFLAGS="-DSPEC -DNDEBUG"
-P: BENCH_FLAGS="-Ispecrand-common"
-P: BENCH_CFLAGS=""
-O: OPTIMIZE="-O3"
-O: COPTIMIZE=""
-P: PORTABILITY=""
-P: CPORTABILITY=""
-O: EXTRA_CFLAGS=""
-O: EXTRA_OPTIMIZE="-fopenmp -DSPEC_OPENMP"
-O: EXTRA_COPTIMIZE="-fno-strict-aliasing -fgnu89-inline"
-P: EXTRA_PORTABILITY="-DSPEC_LP64"
-P: EXTRA_CPORTABILITY=""
-LINK: "/usr/bin/gcc     -std=c99   -mabi=lp64      -O3        -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline <objects>            -o options  "
-C: LD="/usr/bin/gcc     -std=c99   -mabi=lp64"
-O: OPTIMIZE="-O3"
-O: EXTRA_OPTIMIZE="-fopenmp -DSPEC_OPENMP"
-O: EXTRA_COPTIMIZE="-fno-strict-aliasing -fgnu89-inline"
-C: LDOUT="-o options"
-specmake --output-sync -j192 compiler-version
- CC_VERSION_OPTION:
-Using built-in specs.
-COLLECT_GCC=/usr/bin/gcc
-COLLECT_LTO_WRAPPER=/usr/lib/gcc/aarch64-linux-gnu/11/lto-wrapper
-Target: aarch64-linux-gnu
-Configured with: ../src/configure -v --with-pkgversion='Ubuntu 11.4.0-1ubuntu1~22.04.3' --with-bugurl=file:///usr/share/doc/gcc-11/README.Bugs --enable-languages=c,ada,c++,go,d,fortran,objc,obj-c++,m2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-11 --program-prefix=aarch64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-bootstrap --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-libquadmath --disable-libquadmath-support --enable-plugin --enable-default-pie --with-system-zlib --enable-libphobos-checking=release --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --enable-fix-cortex-a53-843419 --disable-werror --enable-checking=release --build=aarch64-linux-gnu --host=aarch64-linux-gnu --target=aarch64-linux-gnu --with-build-config=bootstrap-lto-lean --enable-link-
-serialization=4
-Thread model: posix
-Supported LTO compression algorithms: zlib zstd
-gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04.3)
+gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04)
+specmake --output-sync -j208 build TARGET=ldecod_s
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/filehandle.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/filehandle.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/leaky_bucket.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/leaky_bucket.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/nalucommon.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/nalucommon.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/errorconcealment.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/errorconcealment.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/nal.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/nal.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/intra4x4_pred.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/intra4x4_pred.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/win32.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/win32.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/intra16x16_pred.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/intra16x16_pred.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/blk_prediction.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/blk_prediction.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/intra8x8_pred.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/intra8x8_pred.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/io_raw.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/io_raw.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/decoder_test.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/decoder_test.c
+ldecod_src/decoder_test.c: In function 'WriteOneFrame':
+ldecod_src/decoder_test.c:134:11: warning: ignoring return value of 'write' declared with attribute 'warn_unused_result' [-Wunused-result]
+  134 |           write(hFileOutput, pbBuf+i*iStride, iWidth);
+      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ldecod_src/decoder_test.c:141:11: warning: ignoring return value of 'write' declared with attribute 'warn_unused_result' [-Wunused-result]
+  141 |           write(hFileOutput, pbBuf+i*iStrideUV, iWidthUV);
+      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ldecod_src/decoder_test.c:145:11: warning: ignoring return value of 'write' declared with attribute 'warn_unused_result' [-Wunused-result]
+  145 |           write(hFileOutput, pbBuf+i*iStrideUV, iWidthUV);
+      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ldecod_src/decoder_test.c:160:13: warning: ignoring return value of 'write' declared with attribute 'warn_unused_result' [-Wunused-result]
+  160 |             write(hFileOutput, pbBuf+i*iStride, iWidth);
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ldecod_src/decoder_test.c:168:13: warning: ignoring return value of 'write' declared with attribute 'warn_unused_result' [-Wunused-result]
+  168 |             write(hFileOutput, pbBuf+i*iStrideUV, iWidthUV);
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ldecod_src/decoder_test.c:172:13: warning: ignoring return value of 'write' declared with attribute 'warn_unused_result' [-Wunused-result]
+  172 |             write(hFileOutput, pbBuf+i*iStrideUV, iWidthUV);
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/nalu.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/nalu.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/rtp.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/rtp.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/transform8x8.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/transform8x8.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/biaridecod.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/biaridecod.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/img_io.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/img_io.c
+In file included from /usr/include/string.h:535,
+                 from ldecod_src/inc/global.h:31,
+                 from ldecod_src/img_io.c:15:
+In function 'strncat',
+    inlined from 'OpenFrameFile' at ldecod_src/img_io.c:241:3:
+/usr/include/x86_64-linux-gnu/bits/string_fortified.h:138:10: warning: '__builtin___strncat_chk' specified bound depends on the length of the source argument [-Wstringop-overflow=]
+  138 |   return __builtin___strncat_chk (__dest, __src, __len,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  139 |                                   __glibc_objsize (__dest));
+      |                                   ~~~~~~~~~~~~~~~~~~~~~~~~~
+ldecod_src/img_io.c: In function 'OpenFrameFile':
+ldecod_src/img_io.c:241:3: note: length computed here
+  241 |   strncat(infile, input_file->ftail, strlen(input_file->ftail));
+      |   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/configfile.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/configfile.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/annexb.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/annexb.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/config_common.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/config_common.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/erc_api.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/erc_api.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/mb_access.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/mb_access.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/mv_prediction.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/mv_prediction.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/parsetcommon.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/parsetcommon.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/loopFilter.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/loopFilter.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/fmo.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/fmo.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/context_ini.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/context_ini.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/intra16x16_pred_normal.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/intra16x16_pred_normal.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/quant.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/quant.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/img_process.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/img_process.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/transform.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/transform.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/intra16x16_pred_mbaff.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/intra16x16_pred_mbaff.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/input.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/input.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/intra4x4_pred_normal.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/intra4x4_pred_normal.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/output.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/output.c
+ldecod_src/output.c: In function 'write_out_picture.constprop':
+ldecod_src/output.c:561:38: warning: '_ViewId' directive writing 7 bytes into a region of size between 1 and 255 [-Wformat-overflow=]
+  561 |         sprintf(out_ViewFileName, "%s_ViewId%04d.yuv", chBuf, p->view_id);
+      |                                      ^~~~~~~
+ldecod_src/output.c:561:35: note: directive argument in the range [0, 2147483647]
+  561 |         sprintf(out_ViewFileName, "%s_ViewId%04d.yuv", chBuf, p->view_id);
+      |                                   ^~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/stdio.h:894,
+                 from ldecod_src/inc/win32.h:19,
+                 from ldecod_src/inc/global.h:37,
+                 from ldecod_src/output.c:21:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:38:10: note: '__builtin___sprintf_chk' output between 16 and 276 bytes into a destination of size 255
+   38 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   39 |                                   __glibc_objsize (__s), __fmt,
+      |                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   40 |                                   __va_arg_pack ());
+      |                                   ~~~~~~~~~~~~~~~~~
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/header.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/header.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/ldecod.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/ldecod.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/intra4x4_pred_mbaff.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/intra4x4_pred_mbaff.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/sei.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/sei.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/mc_direct.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/mc_direct.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/loop_filter_mbaff.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/loop_filter_mbaff.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/vlc.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/vlc.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/loop_filter_normal.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/loop_filter_normal.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/mbuffer_mvc.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/mbuffer_mvc.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/intra_chroma_pred.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/intra_chroma_pred.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/mb_prediction.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/mb_prediction.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/parset.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/parset.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/cabac.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/cabac.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/erc_do_i.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/erc_do_i.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/image.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/image.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/io_tiff.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/io_tiff.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/block.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/block.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/erc_do_p.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/erc_do_p.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/intra8x8_pred_normal.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/intra8x8_pred_normal.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/mc_prediction.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/mc_prediction.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/intra8x8_pred_mbaff.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/intra8x8_pred_mbaff.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/memalloc.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/memalloc.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/mbuffer.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/mbuffer.c
+/usr/bin/gcc     -std=c99   -m64 -c -o ldecod_src/macroblock.o -DSPEC -DNDEBUG -Ildecod_src/inc -Ix264_src -Ix264_src/extras -Ix264_src/common -DSPEC_AUTO_BYTEORDER=0x12345678  -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize           -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline   -DSPEC_LP64  ldecod_src/macroblock.c
+/usr/bin/gcc     -std=c99   -m64      -g -O3 -march=native -fno-unsafe-math-optimizations  -fno-tree-loop-vectorize        -fopenmp -DSPEC_OPENMP -fno-strict-aliasing -fgnu89-inline ldecod_src/nal.o ldecod_src/mbuffer_mvc.o ldecod_src/image.o ldecod_src/mb_access.o ldecod_src/memalloc.o ldecod_src/mc_prediction.o ldecod_src/mb_prediction.o ldecod_src/intra4x4_pred_mbaff.o ldecod_src/loop_filter_mbaff.o ldecod_src/context_ini.o ldecod_src/configfile.o ldecod_src/cabac.o ldecod_src/sei.o ldecod_src/leaky_bucket.o ldecod_src/filehandle.o ldecod_src/errorconcealment.o ldecod_src/decoder_test.o ldecod_src/img_process.o ldecod_src/mv_prediction.o ldecod_src/fmo.o ldecod_src/output.o ldecod_src/mc_direct.o ldecod_src/rtp.o ldecod_src/nalucommon.o ldecod_src/config_common.o ldecod_src/intra_chroma_pred.o ldecod_src/transform8x8.o ldecod_src/blk_prediction.o ldecod_src/intra8x8_pred_mbaff.o ldecod_src/erc_do_i.o ldecod_src/io_tiff.o ldecod_src/mbuffer.o ldecod_src/block.o ldecod_src/intra4x4_pred.o ldecod_src/tran
+sform.o ldecod_src/annexb.o ldecod_src/ldecod.o ldecod_src/macroblock.o ldecod_src/vlc.o ldecod_src/parset.o ldecod_src/loop_filter_normal.o ldecod_src/parsetcommon.o ldecod_src/erc_do_p.o ldecod_src/loopFilter.o ldecod_src/intra16x16_pred_mbaff.o ldecod_src/intra4x4_pred_normal.o ldecod_src/intra16x16_pred_normal.o ldecod_src/win32.o ldecod_src/intra16x16_pred.o ldecod_src/intra8x8_pred_normal.o ldecod_src/io_raw.o ldecod_src/img_io.o ldecod_src/nalu.o ldecod_src/quant.o ldecod_src/intra8x8_pred.o ldecod_src/erc_api.o ldecod_src/header.o ldecod_src/biaridecod.o ldecod_src/input.o             -lm         -o ldecod_s
+/usr/bin/ld: ldecod_src/decoder_test.o:/home/sq/cpu2017/benchspec/CPU/625.x264_s/build/build_base_mytest-m64.0000/ldecod_src/inc/configfile.h:21: multiple definition of `cfgparams'; ldecod_src/configfile.o:/home/sq/cpu2017/benchspec/CPU/625.x264_s/build/build_base_mytest-m64.0000/ldecod_src/inc/configfile.h:21: first defined here
+/usr/bin/ld: ldecod_src/config_common.o:/home/sq/cpu2017/benchspec/CPU/625.x264_s/build/build_base_mytest-m64.0000/ldecod_src/inc/configfile.h:21: multiple definition of `cfgparams'; ldecod_src/configfile.o:/home/sq/cpu2017/benchspec/CPU/625.x264_s/build/build_base_mytest-m64.0000/ldecod_src/inc/configfile.h:21: first defined here
+collect2: error: ld returned 1 exit status
+specmake: *** [/home/sq/cpu2017/benchspec/Makefile.defaults:337: ldecod_s] Error 1
+Error with make.ldecod_s 'specmake --output-sync -j208 build TARGET=ldecod_s':
+  ----------------------------------------------------------------------------
+  Please review this file:
+    "/home/sq/cpu2017/benchspec/CPU/625.x264_s/build/build_base_mytest-m64.0000/make.ldecod_s.out"
+  ----------------------------------------------------------------------------
+  Command returned exit code 2
+  Error with make!
+*** Error building 625.x264_s base
 
-Build successes for intspeed: 600.perlbench_s(base), 602.gcc_s(base), 605.mcf_s(base), 620.omnetpp_s(base), 623.xalancbmk_s(base), 631.deepsjeng_s(base), 641.leela_s(base), 657.xz_s(base), 998.specrand_is(base)
-Build errors for intspeed: 625.x264_s(base; CE), 648.exchange2_s(base; CE)
+Build successes for intspeed: None
+Build errors for intspeed: 625.x264_s(base; CE)
 
-Setting Up Run Directories
-  Setting up 600.perlbench_s test base mytest-64: run_base_test_mytest-64.0000
-  Setting up 602.gcc_s test base mytest-64: run_base_test_mytest-64.0000
-  Setting up 605.mcf_s test base mytest-64: run_base_test_mytest-64.0000
-  Setting up 620.omnetpp_s test base mytest-64: run_base_test_mytest-64.0000
-  Setting up 623.xalancbmk_s test base mytest-64: run_base_test_mytest-64.0000
-  Setting up 631.deepsjeng_s test base mytest-64: run_base_test_mytest-64.0000
-  Setting up 641.leela_s test base mytest-64: run_base_test_mytest-64.0000
-  Setting up 657.xz_s test base mytest-64: run_base_test_mytest-64.0000
-  Setting up 998.specrand_is test base mytest-64: run_base_test_mytest-64.0000
-Running Benchmarks
-  Running 600.perlbench_s test base mytest-64 threads:8 [2026-11-25 06:48:25]
-/home/s30027115/cpu2017/bin/specinvoke -d /home/s30027115/cpu2017/benchspec/CPU/600.perlbench_s/run/run_base_test_mytest-64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
-/home/s30027115/cpu2017/bin/specinvoke -d /home/s30027115/cpu2017/benchspec/CPU/600.perlbench_s/run/run_base_test_mytest-64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
-  Running 602.gcc_s test base mytest-64 threads:8 [2026-11-25 06:48:57]
-/home/s30027115/cpu2017/bin/specinvoke -d /home/s30027115/cpu2017/benchspec/CPU/602.gcc_s/run/run_base_test_mytest-64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
-/home/s30027115/cpu2017/bin/specinvoke -d /home/s30027115/cpu2017/benchspec/CPU/602.gcc_s/run/run_base_test_mytest-64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
-  Running 605.mcf_s test base mytest-64 threads:8 [2026-11-25 06:48:57]
-/home/s30027115/cpu2017/bin/specinvoke -d /home/s30027115/cpu2017/benchspec/CPU/605.mcf_s/run/run_base_test_mytest-64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
-/home/s30027115/cpu2017/bin/specinvoke -d /home/s30027115/cpu2017/benchspec/CPU/605.mcf_s/run/run_base_test_mytest-64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
-  Running 620.omnetpp_s test base mytest-64 threads:8 [2026-11-25 06:49:15]
-/home/s30027115/cpu2017/bin/specinvoke -d /home/s30027115/cpu2017/benchspec/CPU/620.omnetpp_s/run/run_base_test_mytest-64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
-/home/s30027115/cpu2017/bin/specinvoke -d /home/s30027115/cpu2017/benchspec/CPU/620.omnetpp_s/run/run_base_test_mytest-64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
-  Running 623.xalancbmk_s test base mytest-64 threads:8 [2026-11-25 06:49:26]
-/home/s30027115/cpu2017/bin/specinvoke -d /home/s30027115/cpu2017/benchspec/CPU/623.xalancbmk_s/run/run_base_test_mytest-64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
-/home/s30027115/cpu2017/bin/specinvoke -d /home/s30027115/cpu2017/benchspec/CPU/623.xalancbmk_s/run/run_base_test_mytest-64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
-  Running 631.deepsjeng_s test base mytest-64 threads:8 [2026-11-25 06:49:26]
-/home/s30027115/cpu2017/bin/specinvoke -d /home/s30027115/cpu2017/benchspec/CPU/631.deepsjeng_s/run/run_base_test_mytest-64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
-/home/s30027115/cpu2017/bin/specinvoke -d /home/s30027115/cpu2017/benchspec/CPU/631.deepsjeng_s/run/run_base_test_mytest-64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
-  Running 641.leela_s test base mytest-64 threads:8 [2026-11-25 06:49:35]
-/home/s30027115/cpu2017/bin/specinvoke -d /home/s30027115/cpu2017/benchspec/CPU/641.leela_s/run/run_base_test_mytest-64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
-/home/s30027115/cpu2017/bin/specinvoke -d /home/s30027115/cpu2017/benchspec/CPU/641.leela_s/run/run_base_test_mytest-64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
-  Running 657.xz_s test base mytest-64 threads:8 [2026-11-25 06:49:42]
-/home/s30027115/cpu2017/bin/specinvoke -d /home/s30027115/cpu2017/benchspec/CPU/657.xz_s/run/run_base_test_mytest-64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
-/home/s30027115/cpu2017/bin/specinvoke -d /home/s30027115/cpu2017/benchspec/CPU/657.xz_s/run/run_base_test_mytest-64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
-  Running 998.specrand_is test base mytest-64 threads:8 [2026-11-25 06:49:54]
-/home/s30027115/cpu2017/bin/specinvoke -d /home/s30027115/cpu2017/benchspec/CPU/998.specrand_is/run/run_base_test_mytest-64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
-/home/s30027115/cpu2017/bin/specinvoke -d /home/s30027115/cpu2017/benchspec/CPU/998.specrand_is/run/run_base_test_mytest-64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
-Success: 1x600.perlbench_s 1x602.gcc_s 1x605.mcf_s 1x620.omnetpp_s 1x623.xalancbmk_s 1x631.deepsjeng_s 1x641.leela_s 1x657.xz_s 1x998.specrand_is
-Error: 1x625.x264_s 1x648.exchange2_s
-Producing Raw Reports
- label: mytest-64
-  workload: test
-   metric: SPECspeed2017_int_base
-    format: raw -> /home/s30027115/cpu2017/result/CPU2017.001.intspeed.test.rsf
-Parsing flags for 600.perlbench_s base: done
-Parsing flags for 602.gcc_s base: done
-Parsing flags for 605.mcf_s base: done
-Parsing flags for 620.omnetpp_s base: done
-Parsing flags for 623.xalancbmk_s base: done
-Parsing flags for 631.deepsjeng_s base: done
-Parsing flags for 641.leela_s base: done
-Parsing flags for 657.xz_s base: done
-Doing flag reduction: done
-    format: CSV -> /home/s30027115/cpu2017/result/CPU2017.001.intspeed.test.csv
-    format: Text -> /home/s30027115/cpu2017/result/CPU2017.001.intspeed.test.txt
-The log for this run is in /home/s30027115/cpu2017/result/CPU2017.001.log
+Build Complete
+The log for this run is in /home/sq/cpu2017/result/CPU2017.005.log
 
-runcpu finished at 2026-11-25 06:50:03; 419 total seconds elapsed
-[speccpu] wrote /tmp/host-cpu-bench-spec.L2itid.json
-result scene=speccpu kind=spec step=1 skipped=1 spec_score=0.0 spec_metric=SPECspeed2017_int_base seconds=419.648 size=test suite=intspeed
+runcpu finished at 2026-11-26 06:42:28; 5 total seconds elapsed
