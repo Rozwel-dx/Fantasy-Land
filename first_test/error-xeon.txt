@@ -261,3 +261,120 @@ The log for this run is in /home/sq/cpu2017/result/CPU2017.010.log
 runcpu finished at 2026-11-27 03:33:53; 193 total seconds elapsed
 [speccpu] wrote w24-spec.json
 result scene=speccpu kind=spec step=1 skipped=1 spec_score=0.0 spec_metric=SPECspeed2017_int_base seconds=193.667 size=test suite=intspeed
+
+
+root@ubuntu1:/home/sq/cpu-skill-main/host_cpu_bench# runcpu --config=host_cpu_bench.cfg --action=run --tune=base --size=test --iterations=1 --noreportable --output_format=text,csv intspeed
+SPEC CPU(r) 2017 Benchmark Suites
+Copyright 1995-2017 Standard Performance Evaluation Corporation (SPEC)
+
+runcpu v5825
+Using 'linux-x86_64' tools
+Reading file manifests... read 32271 entries from 2 files in 0.08s (391785 files/s)
+Loading runcpu modules.................
+Locating benchmarks...found 47 benchmarks in 53 benchsets.
+Reading config file '/home/sq/cpu2017/config/host_cpu_bench.cfg'
+1 configuration selected:
+
+ Action    Run Mode   Workload      Report Type      Benchmarks
+--------   --------   --------   -----------------   --------------------------
+validate   speed      test       SPECspeed2017_int   intspeed
+-------------------------------------------------------------------------------
+
+Setting up environment for running intspeed...
+Starting runcpu for intspeed...
+Running "specperl /home/sq/cpu2017/bin/sysinfo" to gather system information.
+sysinfo: r5974 of 2018-05-19 (9bcde8f2999c33d61f64985e45859ea9)
+sysinfo: Getting system information for Linux...
+sysinfo: ...getting CPU info
+sysinfo: ...getting info from numactl
+sysinfo: ...getting memory info
+sysinfo: ...getting OS info
+sysinfo: ...getting CPU vulnerability status from the kernel
+sysinfo: ...getting disk info
+sysinfo: ...trying to get DIMM info from dmidecode
+Retrieving flags file (/home/sq/cpu2017/config/flags/gcc.xml)...
+Benchmarks selected: 600.perlbench_s, 602.gcc_s, 605.mcf_s, 620.omnetpp_s, 623.xalancbmk_s, 625.x264_s, 631.deepsjeng_s, 641.leela_s, 648.exchange2_s, 657.xz_s, 998.specrand_is
+Compiling Binaries
+  Up to date 600.perlbench_s base mytest-m64
+  Up to date 602.gcc_s base mytest-m64
+  Up to date 605.mcf_s base mytest-m64
+  Up to date 620.omnetpp_s base mytest-m64
+  Up to date 623.xalancbmk_s base mytest-m64
+  Up to date 625.x264_s base mytest-m64
+  Up to date 631.deepsjeng_s base mytest-m64
+  Up to date 641.leela_s base mytest-m64
+  Up to date 648.exchange2_s base mytest-m64
+  Up to date 657.xz_s base mytest-m64
+  Up to date 998.specrand_is base mytest-m64
+
+
+Setting Up Run Directories
+  Setting up 600.perlbench_s test base mytest-m64: run_base_test_mytest-m64.0000
+  Setting up 602.gcc_s test base mytest-m64: run_base_test_mytest-m64.0000
+  Setting up 605.mcf_s test base mytest-m64: run_base_test_mytest-m64.0000
+  Setting up 620.omnetpp_s test base mytest-m64: run_base_test_mytest-m64.0000
+  Setting up 623.xalancbmk_s test base mytest-m64: run_base_test_mytest-m64.0000
+  Setting up 625.x264_s test base mytest-m64: /home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/625.x264_s/run/run_base_test_mytest-m64.0000 -f inputgen.cmd -e inputgen.err -o inputgen.stdout
+run_base_test_mytest-m64.0000
+  Setting up 631.deepsjeng_s test base mytest-m64: run_base_test_mytest-m64.0000
+  Setting up 641.leela_s test base mytest-m64: run_base_test_mytest-m64.0000
+  Setting up 648.exchange2_s test base mytest-m64: run_base_test_mytest-m64.0000
+  Setting up 657.xz_s test base mytest-m64: run_base_test_mytest-m64.0000
+  Setting up 998.specrand_is test base mytest-m64: run_base_test_mytest-m64.0000
+Running Benchmarks
+  Running 600.perlbench_s test base mytest-m64 threads:4 [2026-11-27 06:25:04]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/600.perlbench_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/600.perlbench_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 602.gcc_s test base mytest-m64 threads:4 [2026-11-27 06:25:30]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/602.gcc_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/602.gcc_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 605.mcf_s test base mytest-m64 threads:4 [2026-11-27 06:25:30]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/605.mcf_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/605.mcf_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 620.omnetpp_s test base mytest-m64 threads:4 [2026-11-27 06:25:39]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/620.omnetpp_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/620.omnetpp_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 623.xalancbmk_s test base mytest-m64 threads:4 [2026-11-27 06:25:45]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/623.xalancbmk_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/623.xalancbmk_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 625.x264_s test base mytest-m64 threads:4 [2026-11-27 06:25:45]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/625.x264_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/625.x264_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 631.deepsjeng_s test base mytest-m64 threads:4 [2026-11-27 06:26:18]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/631.deepsjeng_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/631.deepsjeng_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 641.leela_s test base mytest-m64 threads:4 [2026-11-27 06:26:28]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/641.leela_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/641.leela_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 648.exchange2_s test base mytest-m64 threads:4 [2026-11-27 06:26:33]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/648.exchange2_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/648.exchange2_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 657.xz_s test base mytest-m64 threads:4 [2026-11-27 06:26:41]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/657.xz_s/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/657.xz_s/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+  Running 998.specrand_is test base mytest-m64 threads:4 [2026-11-27 06:26:52]
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/998.specrand_is/run/run_base_test_mytest-m64.0000 -f speccmds.cmd -q -e speccmds.err -o speccmds.stdout
+/home/sq/cpu2017/bin/specinvoke -d /home/sq/cpu2017/benchspec/CPU/998.specrand_is/run/run_base_test_mytest-m64.0000 -f compare.cmd -E -e compare.err -o compare.stdout
+Success: 1x600.perlbench_s 1x602.gcc_s 1x605.mcf_s 1x620.omnetpp_s 1x623.xalancbmk_s 1x625.x264_s 1x631.deepsjeng_s 1x641.leela_s 1x648.exchange2_s 1x657.xz_s 1x998.specrand_is
+Producing Raw Reports
+ label: mytest-m64
+  workload: test
+   metric: SPECspeed2017_int_base
+    format: raw -> /home/sq/cpu2017/result/CPU2017.011.intspeed.test.rsf
+Parsing flags for 600.perlbench_s base: done
+Parsing flags for 602.gcc_s base: done
+Parsing flags for 605.mcf_s base: done
+Parsing flags for 620.omnetpp_s base: done
+Parsing flags for 623.xalancbmk_s base: done
+Parsing flags for 625.x264_s base: done
+Parsing flags for 631.deepsjeng_s base: done
+Parsing flags for 641.leela_s base: done
+Parsing flags for 648.exchange2_s base: done
+Parsing flags for 657.xz_s base: done
+Doing flag reduction: done
+    format: CSV -> /home/sq/cpu2017/result/CPU2017.011.intspeed.test.csv
+    format: Text -> /home/sq/cpu2017/result/CPU2017.011.intspeed.test.txt
+The log for this run is in /home/sq/cpu2017/result/CPU2017.011.log
+
+runcpu finished at 2026-11-27 06:26:57; 126 total seconds elapsed
+
